@@ -48,6 +48,10 @@ type ArtifactRow = {
   updated_at: string;
 };
 
+type LastUsedExhibitionRow = {
+  exhibition_id: number;
+};
+
 const EXHIBITION_SORT_ORDER_SQL: Record<ExhibitionArtifactSort, string> = {
   name_asc: 'name COLLATE NOCASE ASC',
   year_asc: 'year ASC',
@@ -432,6 +436,42 @@ export async function listArtifactsByDynasty(dynasty: string): Promise<Artifact[
   );
 
   return rows.map(mapArtifactRow);
+}
+
+export async function listArtifacts(): Promise<Artifact[]> {
+  await initializeDatabase();
+  const db = await getDatabase();
+
+  const rows = await db.getAllAsync<ArtifactRow>(
+    `SELECT
+      id,
+      name,
+      photo_uri,
+      exhibition_id,
+      year,
+      dynasty,
+      note,
+      created_at,
+      updated_at
+    FROM artifacts
+    ORDER BY created_at DESC`
+  );
+
+  return rows.map(mapArtifactRow);
+}
+
+export async function getLastUsedExhibitionId(): Promise<number | null> {
+  await initializeDatabase();
+  const db = await getDatabase();
+
+  const row = await db.getFirstAsync<LastUsedExhibitionRow>(
+    `SELECT exhibition_id
+     FROM artifacts
+     ORDER BY created_at DESC
+     LIMIT 1`
+  );
+
+  return row?.exhibition_id ?? null;
 }
 
 export async function listArtifactsByExhibition(
