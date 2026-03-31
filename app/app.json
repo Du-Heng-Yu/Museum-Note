@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "观展助手",
+    "slug": "guanzhan-helper",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "用于拍摄展品和展牌照片，保存到观展记录中。",
+        "NSPhotoLibraryUsageDescription": "用于从相册导入展品和文字板图片。",
+        "NSLocationWhenInUseUsageDescription": "用于快速填写展览地点。"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "CAMERA",
+        "READ_MEDIA_IMAGES",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "允许观展助手访问你的相册以导入图片。",
+          "cameraPermission": "允许观展助手使用相机拍摄展品和展牌。"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "允许观展助手在使用时访问定位以填写展览地点。"
+        }
+      ]
+    ]
+  }
+}
