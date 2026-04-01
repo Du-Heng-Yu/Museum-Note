@@ -13,7 +13,12 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "用于拍摄展品和展牌照片，保存到观展记录中。",
+        "NSPhotoLibraryUsageDescription": "用于从相册导入展品和文字板图片。",
+        "NSLocationWhenInUseUsageDescription": "用于快速填写展览地点。"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +26,11 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.anonymous.museumnotes"
     },
     "web": {
       "favicon": "./assets/favicon.png"

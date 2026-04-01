@@ -29,13 +29,6 @@ function MainTabs({ navigation }: MainTabsProps) {
     setMenuVisible(false);
   }, []);
 
-  const closeMenuAndWait = useCallback(async () => {
-    closeCreateMenu();
-    await new Promise<void>((resolve) => {
-      setTimeout(() => resolve(), 220);
-    });
-  }, [closeCreateMenu]);
-
   const goToAddArtifact = useCallback(
     (params?: RootStackParamList['addArtifactPage']) => {
       if (params) {
@@ -49,7 +42,7 @@ function MainTabs({ navigation }: MainTabsProps) {
   );
 
   const onPickFromLibrary = useCallback(async () => {
-    await closeMenuAndWait();
+    closeCreateMenu();
 
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -80,10 +73,10 @@ function MainTabs({ navigation }: MainTabsProps) {
     } catch (error) {
       Alert.alert('操作失败', toErrorMessage(error));
     }
-  }, [closeMenuAndWait, goToAddArtifact]);
+  }, [closeCreateMenu, goToAddArtifact]);
 
   const onOpenCamera = useCallback(async () => {
-    await closeMenuAndWait();
+    closeCreateMenu();
 
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -110,12 +103,12 @@ function MainTabs({ navigation }: MainTabsProps) {
     } catch (error) {
       Alert.alert('操作失败', toErrorMessage(error));
     }
-  }, [closeMenuAndWait, goToAddArtifact]);
+  }, [closeCreateMenu, goToAddArtifact]);
 
-  const onTextRecord = useCallback(async () => {
-    await closeMenuAndWait();
+  const onTextRecord = useCallback(() => {
+    closeCreateMenu();
     goToAddArtifact({ focusNameInput: true });
-  }, [closeMenuAndWait, goToAddArtifact]);
+  }, [closeCreateMenu, goToAddArtifact]);
 
   return (
     <View style={styles.appRoot}>
@@ -161,7 +154,7 @@ function MainTabs({ navigation }: MainTabsProps) {
       <Modal
         visible={menuVisible}
         transparent
-        animationType="slide"
+        animationType="none"
         onRequestClose={closeCreateMenu}
       >
         <View style={styles.menuOverlay}>

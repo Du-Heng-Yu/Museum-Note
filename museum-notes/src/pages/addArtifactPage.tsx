@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -53,6 +53,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'addArtifactPage'>;
 export default function AddArtifactPage({ navigation, route }: Props) {
   const [exhibitions, setExhibitions] = useState<Exhibition[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDynastyMenuVisible, setIsDynastyMenuVisible] = useState(false);
   const [draft, setDraft] = useState<ArtifactDraft>(createEmptyDraft);
   const nameInputRef = useRef<TextInput>(null);
 
@@ -157,6 +158,14 @@ export default function AddArtifactPage({ navigation, route }: Props) {
   }, []);
 
   const onSelectDynasty = useCallback((dynastyLabel: string) => {
+    if (!dynastyLabel) {
+      setDraft((previous) => ({
+        ...previous,
+        dynasty: '',
+      }));
+      return;
+    }
+
     const dynasty = getDynastyByLabel(dynastyLabel);
     if (!dynasty) {
       return;
@@ -335,34 +344,27 @@ export default function AddArtifactPage({ navigation, route }: Props) {
           placeholderTextColor="#a7a9a7"
         />
 
-        <Text style={styles.fieldLabel}>年代（必填）</Text>
-        <TextInput
-          style={styles.input}
-          value={draft.yearText}
-          onChangeText={onYearTextChange}
-          placeholder="例如 1368 或 -221"
-          placeholderTextColor="#a7a9a7"
-          keyboardType="numbers-and-punctuation"
-        />
+        <View style={styles.yearDynastyRow}>
+          <View style={styles.yearColumn}>
+            <Text style={[styles.fieldLabel, styles.rowFieldLabel]}>年代（必填）</Text>
+            <TextInput
+              style={[styles.input, styles.compactField]}
+              value={draft.yearText}
+              onChangeText={onYearTextChange}
+              keyboardType="numbers-and-punctuation"
+            />
+            <Text style={styles.smallHint}>仅支持数字，公元前请加负号。</Text>
+          </View>
 
-        <Text style={styles.fieldLabel}>朝代（联动）</Text>
-        <View style={styles.chipWrap}>
-          {DYNASTY_SEGMENTS.map((segment) => (
+          <View style={styles.dynastyColumn}>
+            <Text style={[styles.fieldLabel, styles.rowFieldLabel]}>朝代（选项）</Text>
             <Pressable
-              key={segment.key}
-              style={[styles.dynastyChip, draft.dynasty === segment.label && styles.dynastyChipActive]}
-              onPress={() => onSelectDynasty(segment.label)}
+              style={[styles.input, styles.compactField, styles.dynastyValueButton]}
+              onPress={() => setIsDynastyMenuVisible(true)}
             >
-              <Text
-                style={[
-                  styles.dynastyChipText,
-                  draft.dynasty === segment.label && styles.dynastyChipTextActive,
-                ]}
-              >
-                {segment.label}
-              </Text>
+              <Text style={styles.dynastyValueText}>{draft.dynasty || '自动匹配'}</Text>
             </Pressable>
-          ))}
+          </View>
         </View>
 
         <Text style={styles.smallHint}>当前识别朝代：{draft.dynasty || '未匹配'}</Text>
@@ -378,6 +380,66 @@ export default function AddArtifactPage({ navigation, route }: Props) {
           textAlignVertical="top"
         />
       </ScrollView>
+
+      <Modal
+        visible={isDynastyMenuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsDynastyMenuVisible(false)}
+      >
+        <View style={styles.dynastyMenuOverlay}>
+          <Pressable style={styles.dynastyMenuBackdrop} onPress={() => setIsDynastyMenuVisible(false)} />
+
+          <View style={styles.dynastyMenuCard}>
+            <Text style={styles.dynastyMenuTitle}>选择朝代</Text>
+
+            <ScrollView style={styles.dynastyMenuList} contentContainerStyle={styles.dynastyMenuListContent}>
+              <Pressable
+                style={[
+                  styles.dynastyMenuOption,
+                  draft.dynasty === '' && styles.dynastyMenuOptionActive,
+                ]}
+                onPress={() => {
+                  onSelectDynasty('');
+                  setIsDynastyMenuVisible(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.dynastyMenuOptionText,
+                    draft.dynasty === '' && styles.dynastyMenuOptionTextActive,
+                  ]}
+                >
+                  自动匹配
+                </Text>
+              </Pressable>
+
+              {DYNASTY_SEGMENTS.map((segment) => (
+                <Pressable
+                  key={segment.key}
+                  style={[
+                    styles.dynastyMenuOption,
+                    draft.dynasty === segment.label && styles.dynastyMenuOptionActive,
+                  ]}
+                  onPress={() => {
+                    onSelectDynasty(segment.label);
+                    setIsDynastyMenuVisible(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.dynastyMenuOptionText,
+                      draft.dynasty === segment.label && styles.dynastyMenuOptionTextActive,
+                    ]}
+                  >
+                    {segment.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       <Pressable
         style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
@@ -437,6 +499,24 @@ const styles = StyleSheet.create({
   multilineInput: {
     minHeight: 110,
   },
+  yearDynastyRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  yearColumn: {
+    flex: 1,
+  },
+  dynastyColumn: {
+    flex: 1,
+  },
+  rowFieldLabel: {
+    marginTop: 0,
+  },
+  compactField: {
+    height: 44,
+    paddingVertical: 0,
+  },
   chipWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -462,24 +542,67 @@ const styles = StyleSheet.create({
   exhibitionChipTextActive: {
     color: '#f9f4ea',
   },
-  dynastyChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#d8c7ad',
-    backgroundColor: '#f9efdd',
+  dynastyValueButton: {
+    justifyContent: 'center',
   },
-  dynastyChipActive: {
+  dynastyValueText: {
+    color: '#272117',
+    fontSize: 15,
+  },
+  dynastyMenuOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  dynastyMenuBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.28)',
+  },
+  dynastyMenuCard: {
+    width: '100%',
+    maxWidth: 380,
+    maxHeight: 420,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#deceb5',
+    backgroundColor: '#fff9ef',
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 10,
+    gap: 8,
+  },
+  dynastyMenuTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#2a241b',
+    paddingHorizontal: 4,
+  },
+  dynastyMenuList: {
+    flexGrow: 0,
+  },
+  dynastyMenuListContent: {
+    gap: 6,
+    paddingBottom: 6,
+  },
+  dynastyMenuOption: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e0d0b8',
+    backgroundColor: '#fbf2e3',
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  dynastyMenuOptionActive: {
     borderColor: '#5a3f28',
     backgroundColor: '#5a3f28',
   },
-  dynastyChipText: {
+  dynastyMenuOptionText: {
+    fontSize: 14,
     color: '#5f5344',
-    fontSize: 12,
     fontWeight: '700',
   },
-  dynastyChipTextActive: {
+  dynastyMenuOptionTextActive: {
     color: '#fcf8f0',
   },
   smallHint: {
