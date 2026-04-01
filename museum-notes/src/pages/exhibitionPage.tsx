@@ -3,6 +3,7 @@ import { Alert, FlatList, Image, Pressable, StyleSheet, Text, View } from 'react
 import { useFocusEffect } from '@react-navigation/native';
 
 import { type Artifact, type Exhibition, listArtifacts, listExhibitions } from '../db';
+import { getPrimaryArtifactPhotoUri } from '../utils/artifactPhotos';
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : '发生未知错误';
@@ -65,12 +66,13 @@ export default function ExhibitionPage() {
     const map = new Map<number, string>();
 
     for (const artifact of artifacts) {
-      if (!artifact.photoUri) {
+      const primaryPhotoUri = getPrimaryArtifactPhotoUri(artifact.photoUri);
+      if (!primaryPhotoUri) {
         continue;
       }
 
       if (!map.has(artifact.exhibitionId)) {
-        map.set(artifact.exhibitionId, artifact.photoUri);
+        map.set(artifact.exhibitionId, primaryPhotoUri);
       }
     }
 

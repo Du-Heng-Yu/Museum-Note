@@ -27,7 +27,14 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "我们需要访问你的相册，以便为文物记录添加照片。",
+          "cameraPermission": "我们需要访问你的相机，以便拍摄文物照片。"
+        }
+      ]
     ]
   }
 }

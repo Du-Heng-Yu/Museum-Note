@@ -3,7 +3,12 @@ export type MainTabParamList = {
   exhibitionPage: undefined;
 };
 
+export type AddArtifactPageParams = {
+  initialPhotoUris?: string[];
+  focusNameInput?: boolean;
+};
+
 export type RootStackParamList = {
   MainTabs: undefined;
-  addArtifactPage: undefined;
+  addArtifactPage: AddArtifactPageParams | undefined;
 };

@@ -1,5 +1,4 @@
-import { useCallback, useState } from 'react';
-import * as ImagePicker from 'expo-image-picker';
+import { useCallback, useRef, useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -13,8 +12,7 @@ import {
 } from '../db';
 import { DYNASTY_SEGMENTS, findDynastyByYear, getDynastyByLabel } from '../constants/dynasties';
 import type { RootStackParamList } from '../navigation/types';
-
-type EntryType = 'library' | 'camera';
+import { serializeArtifactPhotoUris } from '../utils/artifactPhotos';
 
 type ArtifactDraft = {
   name: string;
@@ -23,18 +21,28 @@ type ArtifactDraft = {
   dynasty: string;
   selectedExhibitionId: number | null;
   newExhibitionName: string;
-  photoUri: string | null;
+  photoUris: string[];
 };
 
-const EMPTY_DRAFT: ArtifactDraft = {
-  name: '',
-  note: '',
-  yearText: '',
-  dynasty: '',
-  selectedExhibitionId: null,
-  newExhibitionName: '',
-  photoUri: null,
-};
+function createEmptyDraft(): ArtifactDraft {
+  return {
+    name: '',
+    note: '',
+    yearText: '',
+    dynasty: '',
+    selectedExhibitionId: null,
+    newExhibitionName: '',
+    photoUris: [],
+  };
+}
+
+function normalizePhotoUriList(photoUris: string[] | undefined): string[] {
+  if (!photoUris) {
+    return [];
+  }
+
+  return photoUris.map((uri) => uri.trim()).filter((uri) => uri.length > 0);
+}
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : '发生未知错误';
@@ -42,10 +50,11 @@ function toErrorMessage(error: unknown): string {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'addArtifactPage'>;
 
-export default function AddArtifactPage({ navigation }: Props) {
+export default function AddArtifactPage({ navigation, route }: Props) {
   const [exhibitions, setExhibitions] = useState<Exhibition[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [draft, setDraft] = useState<ArtifactDraft>(EMPTY_DRAFT);
+  const [draft, setDraft] = useState<ArtifactDraft>(createEmptyDraft);
+  const nameInputRef = useRef<TextInput>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -87,42 +96,34 @@ export default function AddArtifactPage({ navigation }: Props) {
     }, [])
   );
 
-  const pickImage = useCallback(async (entryType: EntryType) => {
-    try {
-      const permission =
-        entryType === 'camera'
-          ? await ImagePicker.requestCameraPermissionsAsync()
-          : await ImagePicker.requestMediaLibraryPermissionsAsync();
+  useFocusEffect(
+    useCallback(() => {
+      const incomingPhotoUris = normalizePhotoUriList(route.params?.initialPhotoUris);
+      if (incomingPhotoUris.length > 0) {
+        setDraft((previous) => ({
+          ...previous,
+          photoUris: incomingPhotoUris,
+        }));
+      }
 
-      if (!permission.granted) {
-        Alert.alert('权限不足', entryType === 'camera' ? '请允许相机权限。' : '请允许相册权限。');
+      if (!route.params?.focusNameInput) {
         return;
       }
 
-      const result =
-        entryType === 'camera'
-          ? await ImagePicker.launchCameraAsync({
-              mediaTypes: ['images'],
-              quality: 0.85,
-            })
-          : await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: ['images'],
-              quality: 0.85,
-            });
+      const timer = setTimeout(() => {
+        nameInputRef.current?.focus();
+      }, 120);
 
-      if (result.canceled) {
-        return;
-      }
+      return () => {
+        clearTimeout(timer);
+      };
+    }, [route.params?.focusNameInput, route.params?.initialPhotoUris])
+  );
 
-      const asset = result.assets[0];
-      setDraft((previous) => ({
-        ...previous,
-        photoUri: asset?.uri ?? null,
-      }));
-    } catch (error) {
-      Alert.alert('操作失败', toErrorMessage(error));
-    }
-  }, []);
+  const clearDraftAndGoBack = useCallback(() => {
+    setDraft(createEmptyDraft());
+    navigation.goBack();
+  }, [navigation]);
 
   const onYearTextChange = useCallback((text: string) => {
     if (!/^-?\d*$/.test(text)) {
@@ -215,13 +216,14 @@ export default function AddArtifactPage({ navigation }: Props) {
 
       await createArtifact({
         name: artifactName,
-        photoUri: draft.photoUri,
+        photoUri: serializeArtifactPhotoUris(draft.photoUris),
         exhibitionId,
         year: parsedYear,
         dynasty,
         note: draft.note.trim() || null,
       });
 
+      setDraft(createEmptyDraft());
       navigation.goBack();
     } catch (error) {
       Alert.alert('保存失败', toErrorMessage(error));
@@ -239,7 +241,8 @@ export default function AddArtifactPage({ navigation }: Props) {
             if (isSaving) {
               return;
             }
-            navigation.goBack();
+
+            clearDraftAndGoBack();
           }}
         >
           <Text style={styles.cancelText}>取消</Text>
@@ -247,31 +250,9 @@ export default function AddArtifactPage({ navigation }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={styles.composerContent}>
-        <Text style={styles.fieldLabel}>快捷入口</Text>
-        <View style={styles.entryRow}>
-          <Pressable style={styles.entryAction} onPress={() => void pickImage('library')}>
-            <Text style={styles.entryActionText}>从相册选择</Text>
-          </Pressable>
-
-          <Pressable style={styles.entryAction} onPress={() => void pickImage('camera')}>
-            <Text style={styles.entryActionText}>拍照</Text>
-          </Pressable>
-
-          <Pressable
-            style={styles.entryAction}
-            onPress={() =>
-              setDraft((previous) => ({
-                ...previous,
-                photoUri: null,
-              }))
-            }
-          >
-            <Text style={styles.entryActionText}>写文字</Text>
-          </Pressable>
-        </View>
-
         <Text style={styles.fieldLabel}>名称（必填）</Text>
         <TextInput
+          ref={nameInputRef}
           style={styles.input}
           value={draft.name}
           onChangeText={(text) => setDraft((previous) => ({ ...previous, name: text }))}
@@ -280,18 +261,31 @@ export default function AddArtifactPage({ navigation }: Props) {
         />
 
         <Text style={styles.fieldLabel}>照片（选填）</Text>
-        {draft.photoUri ? (
+        {draft.photoUris.length > 0 ? (
           <View style={styles.photoPreviewWrap}>
-            <Image source={{ uri: draft.photoUri }} style={styles.photoPreview} />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.photoPreviewList}
+            >
+              {draft.photoUris.map((uri, index) => (
+                <Image key={`${uri}-${index}`} source={{ uri }} style={styles.photoPreview} />
+              ))}
+            </ScrollView>
+
+            {draft.photoUris.length > 1 ? (
+              <Text style={styles.smallHint}>已选择 {draft.photoUris.length} 张，保存后首张会作为列表封面展示。</Text>
+            ) : null}
+
             <Pressable
               style={styles.photoRemoveButton}
-              onPress={() => setDraft((previous) => ({ ...previous, photoUri: null }))}
+              onPress={() => setDraft((previous) => ({ ...previous, photoUris: [] }))}
             >
               <Text style={styles.photoRemoveText}>移除照片</Text>
             </Pressable>
           </View>
         ) : (
-          <Text style={styles.photoHint}>可以使用上方快捷入口选择照片或直接写文字。</Text>
+          <Text style={styles.photoHint}>请在首页点击 + 后选择“从相册选择”或“相机”来带入照片。</Text>
         )}
 
         <Text style={styles.fieldLabel}>展览（必填）</Text>
@@ -430,25 +424,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2c261c',
   },
-  entryRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  entryAction: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e7d9c4',
-    backgroundColor: '#fdf5e8',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-  },
-  entryActionText: {
-    fontSize: 14,
-    color: '#312a1e',
-    fontWeight: '700',
-  },
   input: {
     borderRadius: 12,
     borderWidth: 1,
@@ -519,8 +494,12 @@ const styles = StyleSheet.create({
     padding: 8,
     gap: 8,
   },
+  photoPreviewList: {
+    gap: 8,
+    paddingRight: 2,
+  },
   photoPreview: {
-    width: '100%',
+    width: 150,
     height: 180,
     borderRadius: 8,
     backgroundColor: '#e5d7c1',

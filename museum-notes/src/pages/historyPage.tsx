@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import { DYNASTY_SEGMENTS, formatYearLabel } from '../constants/dynasties';
 import { type Artifact, listArtifacts } from '../db';
+import { getPrimaryArtifactPhotoUri } from '../utils/artifactPhotos';
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : '发生未知错误';
@@ -52,51 +53,59 @@ export default function HistoryPage() {
     <ScrollView contentContainerStyle={styles.historyContainer}>
       {DYNASTY_SEGMENTS.map((segment) => {
         const rows = artifactsByDynasty.get(segment.label) ?? [];
+        const hasArtifacts = rows.length > 0;
 
         return (
-          <View key={segment.key} style={styles.timelineSection}>
+          <View
+            key={segment.key}
+            style={[styles.timelineSection, !hasArtifacts && styles.timelineSectionEmpty]}
+          >
             <View style={styles.timelineMeta}>
               <Text style={styles.timelineDynasty}>{segment.label}</Text>
               <Text style={styles.timelineRange}>{segment.rangeLabel}</Text>
             </View>
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.timelineCards}
-            >
-              {rows.length === 0 ? (
-                <View style={styles.emptyTimelineCard}>
-                  <Text style={styles.emptyTimelineText}>暂无文物</Text>
-                </View>
-              ) : (
-                rows.map((artifact) => (
-                  <Pressable
-                    key={artifact.id}
-                    style={styles.artifactCard}
-                    onPress={() => {
-                      Alert.alert(
-                        artifact.name,
-                        `${artifact.dynasty} · ${formatYearLabel(artifact.year)}\n${artifact.note ?? '暂无说明'}`
-                      );
-                    }}
-                  >
-                    {artifact.photoUri ? (
-                      <Image source={{ uri: artifact.photoUri }} style={styles.artifactImage} />
-                    ) : (
-                      <View style={styles.artifactImageFallback}>
-                        <Text style={styles.artifactImageFallbackText}>无图</Text>
-                      </View>
-                    )}
+            {hasArtifacts ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.timelineCards}
+              >
+                {rows.map((artifact) => {
+                  const primaryPhotoUri = getPrimaryArtifactPhotoUri(artifact.photoUri);
 
-                    <Text numberOfLines={1} style={styles.artifactName}>
-                      {artifact.name}
-                    </Text>
-                    <Text style={styles.artifactYear}>{formatYearLabel(artifact.year)}</Text>
-                  </Pressable>
-                ))
-              )}
-            </ScrollView>
+                  return (
+                    <Pressable
+                      key={artifact.id}
+                      style={styles.artifactCard}
+                      onPress={() => {
+                        Alert.alert(
+                          artifact.name,
+                          `${artifact.dynasty} · ${formatYearLabel(artifact.year)}\n${artifact.note ?? '暂无说明'}`
+                        );
+                      }}
+                    >
+                      {primaryPhotoUri ? (
+                        <Image source={{ uri: primaryPhotoUri }} style={styles.artifactImage} />
+                      ) : (
+                        <View style={styles.artifactImageFallback}>
+                          <Text style={styles.artifactImageFallbackText}>无图</Text>
+                        </View>
+                      )}
+
+                      <Text numberOfLines={1} style={styles.artifactName}>
+                        {artifact.name}
+                      </Text>
+                      <Text style={styles.artifactYear}>{formatYearLabel(artifact.year)}</Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            ) : (
+              <View style={styles.emptyTimelineInline}>
+                <Text style={styles.emptyTimelineText}>暂无文物</Text>
+              </View>
+            )}
           </View>
         );
       })}
@@ -120,6 +129,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#eadcc6',
   },
+  timelineSectionEmpty: {
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
   timelineMeta: {
     width: 78,
     justifyContent: 'center',
@@ -141,20 +154,13 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingRight: 2,
   },
-  emptyTimelineCard: {
-    width: 122,
-    height: 122,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#dfd2bd',
-    borderStyle: 'dashed',
-    alignItems: 'center',
+  emptyTimelineInline: {
+    flex: 1,
     justifyContent: 'center',
-    backgroundColor: '#fdf6ea',
   },
   emptyTimelineText: {
     color: '#9b9183',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
   },
   artifactCard: {
