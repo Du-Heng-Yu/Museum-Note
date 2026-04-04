@@ -42,6 +42,7 @@ export type RootStackParamList = {
   ArtifactEdit: { artifactId?: number; photos?: string[] };
   ExhibitionDetail: { exhibitionId: number };
   ExhibitionEdit: { exhibitionId?: number; fromArtifactEdit?: boolean };
+  DevTest: undefined;
 };
 
 export type BottomTabParamList = {

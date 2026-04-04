@@ -11,6 +11,7 @@ import ArtifactDetailScreen from '../screens/ArtifactDetailScreen';
 import ArtifactEditScreen from '../screens/ArtifactEditScreen';
 import ExhibitionDetailScreen from '../screens/ExhibitionDetailScreen';
 import ExhibitionEditScreen from '../screens/ExhibitionEditScreen';
+import DevTestScreen from '../screens/DevTestScreen';
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -100,6 +101,11 @@ export default function AppNavigator() {
           name="ExhibitionEdit"
           component={ExhibitionEditScreen}
           options={{ title: '编辑展览' }}
+        />
+        <Stack.Screen
+          name="DevTest"
+          component={DevTestScreen}
+          options={{ title: '数据层测试' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

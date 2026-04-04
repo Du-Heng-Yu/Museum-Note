@@ -30,6 +30,19 @@
       [
         "expo-sqlite"
       ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "允许博物馆笔记使用相机拍摄文物照片",
+          "photosPermission": "允许博物馆笔记访问相册以选择文物照片"
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "允许博物馆笔记将拍摄的照片保存到系统相册"
+        }
+      ],
       "./plugins/withFragileUserData"
     ]
   }
