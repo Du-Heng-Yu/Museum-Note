@@ -40,6 +40,7 @@ export type RootStackParamList = {
   MainTabs: undefined;
   ArtifactDetail: { artifactId: number };
   ArtifactEdit: { artifactId?: number; photos?: string[] };
+  Camera: { fromEdit?: boolean };
   ExhibitionDetail: { exhibitionId: number };
   ExhibitionEdit: { exhibitionId?: number; fromArtifactEdit?: boolean };
   DevTest: undefined;

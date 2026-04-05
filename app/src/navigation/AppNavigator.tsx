@@ -1,14 +1,27 @@
-import React from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { NavigationContainer } from '@react-navigation/native';
-import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
+import { NavigationContainer, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import {
+  View,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  StyleSheet,
+  Text,
+  Modal,
+  Animated,
+  Dimensions,
+  Alert,
+} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import type { RootStackParamList, BottomTabParamList } from '../types';
 
 import TimelineScreen from '../screens/TimelineScreen';
 import ExhibitionsScreen from '../screens/ExhibitionsScreen';
 import ArtifactDetailScreen from '../screens/ArtifactDetailScreen';
 import ArtifactEditScreen from '../screens/ArtifactEditScreen';
+import CameraScreen from '../screens/CameraScreen';
 import ExhibitionDetailScreen from '../screens/ExhibitionDetailScreen';
 import ExhibitionEditScreen from '../screens/ExhibitionEditScreen';
 import DevTestScreen from '../screens/DevTestScreen';
@@ -16,21 +29,128 @@ import DevTestScreen from '../screens/DevTestScreen';
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-/** FAB 占位按钮（仅视觉占位，功能在第 3 步实现） */
-function FABPlaceholder() {
+const SHEET_HEIGHT = 260;
+
+type PendingAction = 'album' | 'camera' | 'text' | null;
+
+/** FAB + Bottom Sheet */
+function FABWithSheet() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [visible, setVisible] = useState(false);
+  const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+
+  const openSheet = useCallback(() => {
+    setVisible(true);
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+      damping: 20,
+      stiffness: 200,
+    }).start();
+  }, [slideAnim]);
+
+  const closeSheet = useCallback(() => {
+    Animated.timing(slideAnim, {
+      toValue: SHEET_HEIGHT,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setVisible(false);
+    });
+  }, [slideAnim]);
+
+  // Sheet 关闭后，根据 pendingAction 执行对应操作
+  useEffect(() => {
+    if (visible || pendingAction === null) return;
+
+    const timer = setTimeout(async () => {
+      const action = pendingAction;
+      setPendingAction(null);
+
+      if (action === 'album') {
+        try {
+          const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsMultipleSelection: true,
+            quality: 0.8,
+          });
+          if (!result.canceled && result.assets && result.assets.length > 0) {
+            navigation.navigate('ArtifactEdit', {
+              photos: result.assets.map((a) => a.uri),
+            });
+          }
+        } catch (e) {
+          console.warn('[Album] 打开相册失败:', e);
+        }
+      } else if (action === 'camera') {
+        navigation.navigate('Camera', {});
+      } else if (action === 'text') {
+        navigation.navigate('ArtifactEdit', {});
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [visible, pendingAction, navigation]);
+
+  function handleAlbum() {
+    setPendingAction('album');
+    closeSheet();
+  }
+
+  function handleCamera() {
+    setPendingAction('camera');
+    closeSheet();
+  }
+
+  function handleTextOnly() {
+    setPendingAction('text');
+    closeSheet();
+  }
+
   return (
-    <View style={styles.fabWrapper}>
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => {
-          // 第 3 步实现 Bottom Sheet 弹出
-          console.log('[FAB] 点击 +（待实现）');
-        }}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.fabText}>+</Text>
-      </TouchableOpacity>
-    </View>
+    <>
+      <View style={styles.fabWrapper}>
+        <TouchableOpacity style={styles.fab} onPress={openSheet} activeOpacity={0.7}>
+          <Text style={styles.fabText}>+</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Modal visible={visible} transparent animationType="none">
+        <TouchableWithoutFeedback onPress={closeSheet}>
+          <View style={styles.sheetOverlay}>
+            <TouchableWithoutFeedback>
+              <Animated.View
+                style={[styles.sheetContainer, { transform: [{ translateY: slideAnim }] }]}
+              >
+                <View style={styles.sheetHandle} />
+                <TouchableOpacity style={styles.sheetItem} onPress={handleAlbum}>
+                  <Text style={styles.sheetIcon}>🖼</Text>
+                  <View>
+                    <Text style={styles.sheetItemTitle}>从相册选择</Text>
+                    <Text style={styles.sheetItemSub}>选择多张照片快速记录</Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.sheetItem} onPress={handleCamera}>
+                  <Text style={styles.sheetIcon}>📷</Text>
+                  <View>
+                    <Text style={styles.sheetItemTitle}>相机拍摄</Text>
+                    <Text style={styles.sheetItemSub}>拍照同时保存到相册</Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.sheetItem} onPress={handleTextOnly}>
+                  <Text style={styles.sheetIcon}>📝</Text>
+                  <View>
+                    <Text style={styles.sheetItemTitle}>文字记录</Text>
+                    <Text style={styles.sheetItemSub}>仅填写文物信息，不拍照</Text>
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    </>
   );
 }
 
@@ -67,7 +187,7 @@ function BottomTabs() {
           }}
         />
       </Tab.Navigator>
-      <FABPlaceholder />
+      <FABWithSheet />
     </View>
   );
 }
@@ -91,6 +211,11 @@ export default function AppNavigator() {
           name="ArtifactEdit"
           component={ArtifactEditScreen}
           options={{ title: '编辑文物' }}
+        />
+        <Stack.Screen
+          name="Camera"
+          component={CameraScreen}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="ExhibitionDetail"
@@ -141,5 +266,45 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: '#fff',
     lineHeight: 30,
+  },
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  sheetContainer: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingBottom: 34,
+    paddingTop: 8,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#ddd',
+    alignSelf: 'center',
+    marginBottom: 12,
+  },
+  sheetItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+  },
+  sheetIcon: {
+    fontSize: 24,
+    marginRight: 16,
+  },
+  sheetItemTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  sheetItemSub: {
+    fontSize: 13,
+    color: '#888',
+    marginTop: 2,
   },
 });

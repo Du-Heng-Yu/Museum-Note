@@ -1,26 +1,184 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  Platform,
+  KeyboardAvoidingView,
+} from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
+import {
+  createExhibition,
+  getExhibitionById,
+  updateExhibition,
+} from '../db';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExhibitionEdit'>;
 
-export default function ExhibitionEditScreen({ route }: Props) {
+export default function ExhibitionEditScreen({ route, navigation }: Props) {
   const exhibitionId = route.params?.exhibitionId;
   const isEdit = exhibitionId !== undefined;
 
+  const [name, setName] = useState('');
+  const [museum, setMuseum] = useState('');
+  const [description, setDescription] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [visitDate, setVisitDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+
+  useEffect(() => {
+    if (isEdit && exhibitionId != null) {
+      const ex = getExhibitionById(exhibitionId);
+      if (ex) {
+        setName(ex.name);
+        setMuseum(ex.museum);
+        setDescription(ex.description ?? '');
+        setVisitDate(ex.visit_date);
+      }
+    }
+  }, [exhibitionId, isEdit]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: isEdit ? '编辑展览' : '新建展览',
+      headerRight: () => (
+        <TouchableOpacity onPress={handleSave}>
+          <Text style={{ color: '#4A90D9', fontSize: 16, fontWeight: '600' }}>保存</Text>
+        </TouchableOpacity>
+      ),
+    });
+  });
+
+  function validateDate(str: string): boolean {
+    return /^\d{4}-\d{2}-\d{2}$/.test(str) && !isNaN(Date.parse(str));
+  }
+
+  function handleSave() {
+    if (!name.trim()) {
+      Alert.alert('提示', '请输入展览名称');
+      return;
+    }
+    if (!museum.trim()) {
+      Alert.alert('提示', '请输入博物馆名称');
+      return;
+    }
+    if (!validateDate(visitDate)) {
+      Alert.alert('提示', '参观日期格式不正确（YYYY-MM-DD）');
+      return;
+    }
+
+    if (isEdit && exhibitionId != null) {
+      updateExhibition(exhibitionId, {
+        name: name.trim(),
+        museum: museum.trim(),
+        visit_date: visitDate,
+        description: description.trim() || null,
+      });
+    } else {
+      createExhibition({
+        name: name.trim(),
+        museum: museum.trim(),
+        visit_date: visitDate,
+        description: description.trim() || null,
+      });
+    }
+
+    navigation.goBack();
+  }
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{isEdit ? '编辑展览' : '新建展览'}</Text>
-      {isEdit && <Text style={styles.info}>编辑展览 ID: {exhibitionId}</Text>}
-      <Text style={styles.hint}>（占位页面，待后续实现）</Text>
-    </View>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+    >
+    <ScrollView
+      style={styles.container}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={styles.content}
+    >
+      <Text style={styles.label}>展览名称 *</Text>
+      <TextInput
+        style={styles.input}
+        value={name}
+        onChangeText={setName}
+        placeholder="例如：青铜时代特展"
+        autoFocus={!isEdit}
+      />
+
+      <Text style={styles.label}>博物馆 *</Text>
+      <TextInput
+        style={styles.input}
+        value={museum}
+        onChangeText={setMuseum}
+        placeholder="例如：国家博物馆"
+      />
+
+      <Text style={styles.label}>参观日期 *</Text>
+      <TouchableOpacity
+        style={[styles.input, styles.pickerBtn]}
+        onPress={() => setShowDatePicker(true)}
+      >
+        <Text style={styles.pickerText}>{visitDate}</Text>
+      </TouchableOpacity>
+      {showDatePicker && (
+        <DateTimePicker
+          value={(() => {
+            const d = new Date(visitDate);
+            return isNaN(d.getTime()) ? new Date() : d;
+          })()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          locale="zh-CN"
+          onChange={(_event: any, selectedDate?: Date) => {
+            setShowDatePicker(Platform.OS === 'ios');
+            if (selectedDate) {
+              const y = selectedDate.getFullYear();
+              const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+              const d = String(selectedDate.getDate()).padStart(2, '0');
+              setVisitDate(`${y}-${m}-${d}`);
+            }
+          }}
+        />
+      )}
+
+      <Text style={styles.label}>展览说明</Text>
+      <TextInput
+        style={[styles.input, styles.multiline]}
+        value={description}
+        onChangeText={setDescription}
+        placeholder="选填"
+        multiline
+        numberOfLines={4}
+        textAlignVertical="top"
+      />
+    </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 12 },
-  info: { fontSize: 16, marginBottom: 8 },
-  hint: { fontSize: 14, color: '#888' },
+  container: { flex: 1, backgroundColor: '#fff' },
+  content: { padding: 16 },
+  label: { fontSize: 14, fontWeight: '600', color: '#333', marginTop: 16, marginBottom: 6 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    backgroundColor: '#fafafa',
+  },
+  pickerBtn: { justifyContent: 'center' },
+  pickerText: { fontSize: 15, color: '#333' },
+  multiline: { minHeight: 100 },
 });
