@@ -14,9 +14,11 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import type { RootStackParamList, BottomTabParamList } from '../types';
 
+import AppHeader from '../components/AppHeader';
 import TimelineScreen from '../screens/TimelineScreen';
 import ExhibitionsScreen from '../screens/ExhibitionsScreen';
 import ArtifactDetailScreen from '../screens/ArtifactDetailScreen';
@@ -157,7 +159,10 @@ function FABWithSheet() {
 /** 底部 Tab 导航 */
 function BottomTabs() {
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: '#f7f1e1' }}>
+      <SafeAreaView edges={['top']} style={{ backgroundColor: '#f7f1e1' }}>
+        <AppHeader />
+      </SafeAreaView>
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
@@ -253,7 +258,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#4A90D9',
+    backgroundColor: '#a98a5d',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 6,

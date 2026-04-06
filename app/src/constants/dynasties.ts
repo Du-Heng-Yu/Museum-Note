@@ -3,7 +3,7 @@ import { Dynasty } from '../types';
 const CURRENT_YEAR = new Date().getFullYear();
 
 /**
- * 中国历史朝代常量（旧石器时代 → 近现代）
+ * 中国历史朝代常量（旧石器时代 → 中华人民共和国）
  * 年份负数表示公元前（BC），正数表示公元后（AD）
  * 不入库，仅作为前端常量使用
  */
@@ -29,13 +29,14 @@ export const DYNASTIES: Dynasty[] = [
   { id: 19, name: '唐',         startYear: 618,      endYear: 907,          order: 19 },
   { id: 20, name: '五代十国',   startYear: 907,      endYear: 960,          order: 20 },
   { id: 21, name: '北宋',       startYear: 960,      endYear: 1127,         order: 21 },
-  { id: 22, name: '南宋',       startYear: 1127,     endYear: 1279,         order: 22 },
-  { id: 23, name: '辽',         startYear: 916,      endYear: 1125,         order: 23 },
+  { id: 22, name: '辽',         startYear: 916,      endYear: 1125,         order: 22 },
+  { id: 23, name: '南宋',       startYear: 1127,     endYear: 1279,         order: 23 },
   { id: 24, name: '金',         startYear: 1115,     endYear: 1234,         order: 24 },
   { id: 25, name: '元',         startYear: 1271,     endYear: 1368,         order: 25 },
   { id: 26, name: '明',         startYear: 1368,     endYear: 1644,         order: 26 },
   { id: 27, name: '清',         startYear: 1636,     endYear: 1912,         order: 27 },
-  { id: 28, name: '近现代',     startYear: 1912,     endYear: CURRENT_YEAR, order: 28 },
+  { id: 28, name: '中华民国',   startYear: 1912,     endYear: 1948,         order: 28 },  
+  { id: 29, name: '中华人民共和国', startYear: 1949,     endYear: CURRENT_YEAR, order: 29 },
 ];
 
 /** 年份输入范围常量 */
