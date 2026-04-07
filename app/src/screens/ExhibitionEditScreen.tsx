@@ -17,12 +17,14 @@ import {
   createExhibition,
   getExhibitionById,
   updateExhibition,
+  deleteExhibition,
 } from '../db';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExhibitionEdit'>;
 
 export default function ExhibitionEditScreen({ route, navigation }: Props) {
   const exhibitionId = route.params?.exhibitionId;
+  const fromArtifactEdit = route.params?.fromArtifactEdit === true;
   const isEdit = exhibitionId !== undefined;
 
   const [name, setName] = useState('');
@@ -94,6 +96,25 @@ export default function ExhibitionEditScreen({ route, navigation }: Props) {
     navigation.goBack();
   }
 
+  function handleDeleteExhibition() {
+    Alert.alert(
+      '确认删除',
+      '删除后该展览下的所有文物也将一并删除，此操作不可撤销',
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '删除',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteExhibition(exhibitionId!);
+            // 返回到展览列表（MainTabs）
+            navigation.navigate('MainTabs');
+          },
+        },
+      ],
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -160,6 +181,12 @@ export default function ExhibitionEditScreen({ route, navigation }: Props) {
         numberOfLines={4}
         textAlignVertical="top"
       />
+
+      {isEdit && (
+        <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteExhibition}>
+          <Text style={styles.deleteBtnText}>删除展览</Text>
+        </TouchableOpacity>
+      )}
     </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -181,4 +208,15 @@ const styles = StyleSheet.create({
   pickerBtn: { justifyContent: 'center' },
   pickerText: { fontSize: 15, color: '#333' },
   multiline: { minHeight: 100 },
+  deleteBtn: {
+    marginTop: 40,
+    marginBottom: 20,
+    alignSelf: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#c0392b',
+  },
+  deleteBtnText: { color: '#c0392b', fontSize: 16, fontWeight: '600' },
 });

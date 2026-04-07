@@ -73,6 +73,7 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
   const nameInputRef = useRef<TextInput>(null);
   const originalPhotos = useRef<string[]>([]);
   const photoSize = useRef(new RNAnimated.Value(80)).current;
+  const waitingForNewExhibition = useRef(false);
 
   // Load persisted mode
   useEffect(() => {
@@ -128,11 +129,15 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
     useCallback(() => {
       const list = getAllExhibitions();
       setExhibitions(list);
-      // Auto-select newest exhibition if none selected yet
-      if (exhibitionId == null && list.length > 0) {
+      // Auto-select newest exhibition after returning from ExhibitionEdit
+      if (waitingForNewExhibition.current && list.length > 0) {
         const newest = list.reduce((a, b) => (a.id > b.id ? a : b));
-        // Only auto-select if we came back from creating one
-        if (!isEdit && list.length > exhibitions.length && exhibitions.length > 0) {
+        setExhibitionId(newest.id);
+        waitingForNewExhibition.current = false;
+      } else if (exhibitionId == null && list.length > 0 && !isEdit) {
+        // First load: auto-select newest if none selected
+        if (list.length > exhibitions.length && exhibitions.length > 0) {
+          const newest = list.reduce((a, b) => (a.id > b.id ? a : b));
           setExhibitionId(newest.id);
         }
       }
@@ -494,6 +499,7 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
                       style={styles.modalItem}
                       onPress={() => {
                         setShowExhibitionPicker(false);
+                        waitingForNewExhibition.current = true;
                         navigation.navigate('ExhibitionEdit', { fromArtifactEdit: true });
                       }}
                     >
