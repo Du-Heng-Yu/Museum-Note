@@ -60,7 +60,7 @@ export default function ExhibitionsScreen() {
     <View style={styles.container}>
       {/* 右上角新建按钮 */}
       <View style={styles.topBar}>
-        <Text style={styles.pageTitle}>我的展览</Text>
+        <Text style={styles.pageTitle}>我的展览 My Exhibitions</Text>
         <TouchableOpacity
           onPress={() => navigation.navigate('ExhibitionEdit', {})}
           style={styles.addBtn}
