@@ -15,6 +15,7 @@ import type { RootStackParamList, Artifact, Exhibition } from '../types';
 import { getArtifactById, deleteArtifact, getExhibitionById } from '../db';
 import { parseJsonArray } from '../utils/json';
 import { FONT_KAITI, FONT_TIMES } from '../constants/fonts';
+import { Colors, Radius, Spacing, FontSize } from '../constants/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ArtifactDetail'>;
 
@@ -171,66 +172,73 @@ export default function ArtifactDetailScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f7f1e1' },
+  container: { flex: 1, backgroundColor: Colors.bg },
   content: { paddingBottom: 40 },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f7f1e1' },
-  emptyText: { fontSize: 16, color: '#999' },
-  headerActions: { flexDirection: 'row', gap: 12 },
-  headerBtn: { paddingHorizontal: 4 },
-  headerBtnText: { fontSize: 16, fontWeight: '600', color: '#4A90D9' },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
+  emptyText: { fontSize: 16, color: Colors.textSecondary },
+  headerActions: { flexDirection: 'row', gap: Spacing.md },
+  headerBtn: { paddingHorizontal: Spacing.xs },
+  headerBtnText: { fontSize: 16, fontWeight: '600', color: Colors.accent },
 
   // 照片
   photoScroller: { height: SCREEN_WIDTH * 0.75 },
   photo: { width: SCREEN_WIDTH, height: SCREEN_WIDTH * 0.75 },
 
   // 信息区
-  infoSection: { padding: 16 },
+  infoSection: {
+    margin: Spacing.lg,
+    padding: Spacing.lg,
+    backgroundColor: Colors.card,
+    borderRadius: Radius.lg,
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+  },
   artifactName: {
-    fontSize: 24,
+    fontSize: FontSize.h1,
     fontWeight: '700',
     fontFamily: FONT_KAITI,
-    color: '#1a1a1a',
-    marginBottom: 16,
+    color: Colors.text,
+    marginBottom: Spacing.lg,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#d3c9b4',
+    borderBottomColor: Colors.border,
   },
   metaLabel: {
     width: 60,
-    fontSize: 14,
-    color: '#888',
+    fontSize: FontSize.body,
+    color: Colors.textSecondary,
     fontFamily: FONT_KAITI,
   },
   metaValue: {
     flex: 1,
     fontSize: 15,
-    color: '#333',
+    color: Colors.text,
     fontFamily: FONT_TIMES,
   },
-  linkText: { color: '#4A90D9', textDecorationLine: 'underline' },
+  linkText: { color: Colors.info, textDecorationLine: 'underline' },
 
-  textBlock: { marginTop: 20 },
+  textBlock: { marginTop: Spacing.lg },
   blockLabel: {
-    fontSize: 14,
-    color: '#888',
+    fontSize: FontSize.body,
+    color: Colors.textSecondary,
     fontFamily: FONT_KAITI,
     marginBottom: 6,
   },
-  blockText: { fontSize: 15, color: '#333', lineHeight: 24 },
+  blockText: { fontSize: 15, color: Colors.text, lineHeight: 24 },
 
-  tagsSection: { marginTop: 20 },
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  tagsSection: { marginTop: Spacing.lg },
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginTop: Spacing.xs },
   tagChip: {
-    backgroundColor: '#ede9d9',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    backgroundColor: Colors.bg,
+    borderRadius: Radius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
     borderWidth: 0.5,
-    borderColor: '#d3c9b4',
+    borderColor: Colors.border,
   },
-  tagText: { fontSize: 13, color: '#5C5649' },
+  tagText: { fontSize: FontSize.caption, color: Colors.text },
 });

@@ -14,6 +14,7 @@ import type { RootStackParamList, Exhibition, Artifact } from '../types';
 import { getExhibitionById, getArtifactsByExhibitionId } from '../db';
 import { parseJsonArray } from '../utils/json';
 import { FONT_KAITI } from '../constants/fonts';
+import { Colors, Radius, Spacing, FontSize } from '../constants/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExhibitionDetail'>;
 
@@ -115,44 +116,44 @@ export default function ExhibitionDetailScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f7f1e1' },
+  container: { flex: 1, backgroundColor: Colors.bg },
   content: { paddingBottom: 40 },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f7f1e1' },
-  emptyText: { fontSize: 16, color: '#999' },
-  headerBtn: { paddingHorizontal: 4 },
-  headerBtnText: { fontSize: 16, fontWeight: '600', color: '#4A90D9' },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
+  emptyText: { fontSize: 16, color: Colors.textSecondary },
+  headerBtn: { paddingHorizontal: Spacing.xs },
+  headerBtnText: { fontSize: 16, fontWeight: '600', color: Colors.accent },
 
   // 展览信息
   infoCard: {
-    margin: 16,
-    padding: 16,
-    backgroundColor: '#ede9d9',
-    borderRadius: 12,
+    margin: Spacing.lg,
+    padding: Spacing.lg,
+    backgroundColor: Colors.card,
+    borderRadius: Radius.lg,
     borderWidth: 0.5,
-    borderColor: '#d3c9b4',
+    borderColor: Colors.border,
   },
   exName: {
-    fontSize: 22,
+    fontSize: FontSize.h1,
     fontWeight: '700',
     fontFamily: FONT_KAITI,
-    color: '#1a1a1a',
-    marginBottom: 8,
+    color: Colors.text,
+    marginBottom: Spacing.sm,
   },
-  exMuseum: { fontSize: 15, color: '#555', marginBottom: 4 },
-  exDate: { fontSize: 14, color: '#888', marginBottom: 8 },
-  exDesc: { fontSize: 14, color: '#666', lineHeight: 22, marginTop: 4 },
+  exMuseum: { fontSize: 15, color: Colors.text, opacity: 0.7, marginBottom: Spacing.xs },
+  exDate: { fontSize: FontSize.body, color: Colors.textSecondary, marginBottom: Spacing.sm },
+  exDesc: { fontSize: FontSize.body, color: Colors.text, opacity: 0.8, lineHeight: 22, marginTop: Spacing.xs },
 
   // Section
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 12,
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.md,
   },
-  sectionTitle: { fontSize: 17, fontWeight: '600', fontFamily: FONT_KAITI, color: '#1a1a1a' },
-  sectionCount: { fontSize: 14, color: '#888' },
+  sectionTitle: { fontSize: 17, fontWeight: '600', fontFamily: FONT_KAITI, color: Colors.text },
+  sectionCount: { fontSize: FontSize.body, color: Colors.textSecondary },
 
   // Grid
   grid: {
@@ -163,11 +164,11 @@ const styles = StyleSheet.create({
   },
   artifactCard: {
     width: CARD_WIDTH,
-    backgroundColor: '#ede9d9',
-    borderRadius: 8,
+    backgroundColor: Colors.card,
+    borderRadius: Radius.sm,
     borderWidth: 0.5,
-    borderColor: '#d3c9b4',
-    padding: 4,
+    borderColor: Colors.border,
+    padding: Spacing.xs,
     alignItems: 'center',
   },
   artifactImg: {
@@ -176,21 +177,22 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   placeholder: {
-    backgroundColor: '#ddd6c6',
+    backgroundColor: Colors.border,
     justifyContent: 'center',
     alignItems: 'center',
+    opacity: 0.5,
   },
   placeholderText: { fontSize: 24 },
   artifactName: {
-    fontSize: 12,
-    color: '#333',
+    fontSize: FontSize.caption,
+    color: Colors.text,
     fontFamily: FONT_KAITI,
-    marginTop: 4,
+    marginTop: Spacing.xs,
     marginBottom: 2,
     textAlign: 'center',
   },
 
   // Empty artifacts
   emptyArtifacts: { alignItems: 'center', paddingTop: 40 },
-  emptyArtifactsText: { fontSize: 14, color: '#999', textAlign: 'center', lineHeight: 22 },
+  emptyArtifactsText: { fontSize: FontSize.body, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22, fontFamily: FONT_KAITI },
 });

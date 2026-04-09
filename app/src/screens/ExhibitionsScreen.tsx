@@ -11,6 +11,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList, Exhibition } from '../types';
 import { getAllExhibitions, getExhibitionArtifactCount } from '../db';
 import { FONT_KAITI } from '../constants/fonts';
+import { Colors, Radius, Spacing, FontSize } from '../constants/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -88,37 +89,37 @@ export default function ExhibitionsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f7f1e1' },
+  container: { flex: 1, backgroundColor: Colors.bg },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
   },
   pageTitle: {
-    fontSize: 20,
+    fontSize: FontSize.h2,
     fontWeight: '700',
     fontFamily: FONT_KAITI,
-    color: '#1a1a1a',
+    color: Colors.text,
   },
   addBtn: {
-    paddingHorizontal: 12,
+    paddingHorizontal: Spacing.md,
     paddingVertical: 6,
-    backgroundColor: '#a98a5d',
-    borderRadius: 16,
+    backgroundColor: Colors.accent,
+    borderRadius: Radius.lg,
   },
-  addBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  addBtnText: { color: Colors.white, fontSize: FontSize.body, fontWeight: '600' },
 
-  listContent: { paddingHorizontal: 16, paddingBottom: 100 },
+  listContent: { paddingHorizontal: Spacing.lg, paddingBottom: 100 },
   card: {
-    backgroundColor: '#ede9d9',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 12,
+    backgroundColor: Colors.card,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+    marginTop: Spacing.md,
     borderWidth: 0.5,
-    borderColor: '#d3c9b4',
+    borderColor: Colors.border,
   },
   cardTop: {
     flexDirection: 'row',
@@ -130,14 +131,14 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     fontFamily: FONT_KAITI,
-    color: '#1a1a1a',
+    color: Colors.text,
     flex: 1,
-    marginRight: 8,
+    marginRight: Spacing.sm,
   },
-  cardCount: { fontSize: 13, color: '#888' },
-  cardMuseum: { fontSize: 14, color: '#555', marginBottom: 4 },
-  cardDate: { fontSize: 13, color: '#999' },
+  cardCount: { fontSize: FontSize.caption, color: Colors.textSecondary },
+  cardMuseum: { fontSize: FontSize.body, color: Colors.text, marginBottom: Spacing.xs, opacity: 0.7 },
+  cardDate: { fontSize: FontSize.caption, color: Colors.textSecondary },
 
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
-  emptyText: { fontSize: 15, color: '#999', textAlign: 'center', lineHeight: 24 },
+  emptyText: { fontSize: 15, color: Colors.textSecondary, textAlign: 'center', lineHeight: 24, fontFamily: FONT_KAITI },
 });

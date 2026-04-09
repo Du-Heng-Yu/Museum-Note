@@ -17,6 +17,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import type { RootStackParamList, BottomTabParamList } from '../types';
+import { Colors, Radius, Spacing, StackHeaderOptions } from '../constants/theme';
+import { FONT_KAITI } from '../constants/fonts';
 
 import AppHeader from '../components/AppHeader';
 import TimelineScreen from '../screens/TimelineScreen';
@@ -159,16 +161,17 @@ function FABWithSheet() {
 /** 底部 Tab 导航 */
 function BottomTabs() {
   return (
-    <View style={{ flex: 1, backgroundColor: '#f7f1e1' }}>
-      <SafeAreaView edges={['top']} style={{ backgroundColor: '#f7f1e1' }}>
+    <View style={{ flex: 1, backgroundColor: Colors.bg }}>
+      <SafeAreaView edges={['top']} style={{ backgroundColor: Colors.bg }}>
         <AppHeader />
       </SafeAreaView>
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
           tabBarStyle: styles.tabBar,
-          tabBarActiveTintColor: '#333',
-          tabBarInactiveTintColor: '#999',
+          tabBarActiveTintColor: Colors.accent,
+          tabBarInactiveTintColor: Colors.textSecondary,
+          tabBarLabelStyle: styles.tabBarLabel,
         }}
       >
         <Tab.Screen
@@ -197,11 +200,16 @@ function BottomTabs() {
   );
 }
 
-/** 根导航：Tab + 4 个 Stack 页面 */
+/** 根导航：Tab + Stack 页面 */
 export default function AppNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator>
+      <Stack.Navigator
+        screenOptions={{
+          ...StackHeaderOptions,
+          headerTitleStyle: { fontFamily: FONT_KAITI, fontSize: 18, color: Colors.text },
+        }}
+      >
         <Stack.Screen
           name="MainTabs"
           component={BottomTabs}
@@ -247,6 +255,14 @@ const styles = StyleSheet.create({
     height: 60,
     paddingBottom: 8,
     paddingTop: 4,
+    backgroundColor: Colors.bg,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    elevation: 0,
+  },
+  tabBarLabel: {
+    fontFamily: FONT_KAITI,
+    fontSize: 12,
   },
   fabWrapper: {
     position: 'absolute',
@@ -258,58 +274,58 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#a98a5d',
+    backgroundColor: Colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 6,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
     shadowRadius: 4,
   },
   fabText: {
     fontSize: 28,
-    color: '#fff',
+    color: Colors.white,
     lineHeight: 30,
   },
   sheetOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: Colors.overlay,
     justifyContent: 'flex-end',
   },
   sheetContainer: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    backgroundColor: Colors.surface,
+    borderTopLeftRadius: Radius.lg,
+    borderTopRightRadius: Radius.lg,
     paddingBottom: 34,
-    paddingTop: 8,
+    paddingTop: Spacing.sm,
   },
   sheetHandle: {
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#ddd',
+    backgroundColor: Colors.border,
     alignSelf: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.md,
   },
   sheetItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
   },
   sheetIcon: {
     fontSize: 24,
-    marginRight: 16,
+    marginRight: Spacing.lg,
   },
   sheetItemTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#333',
+    color: Colors.text,
   },
   sheetItemSub: {
     fontSize: 13,
-    color: '#888',
+    color: Colors.textSecondary,
     marginTop: 2,
   },
 });

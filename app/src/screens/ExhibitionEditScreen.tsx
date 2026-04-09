@@ -19,6 +19,7 @@ import {
   updateExhibition,
   deleteExhibition,
 } from '../db';
+import { Colors, Radius, Spacing, FontSize } from '../constants/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExhibitionEdit'>;
 
@@ -53,7 +54,7 @@ export default function ExhibitionEditScreen({ route, navigation }: Props) {
       title: isEdit ? '编辑展览' : '新建展览',
       headerRight: () => (
         <TouchableOpacity onPress={handleSave}>
-          <Text style={{ color: '#4A90D9', fontSize: 16, fontWeight: '600' }}>保存</Text>
+          <Text style={{ color: Colors.accent, fontSize: 16, fontWeight: '600' }}>保存</Text>
         </TouchableOpacity>
       ),
     });
@@ -193,30 +194,29 @@ export default function ExhibitionEditScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 16 },
-  label: { fontSize: 14, fontWeight: '600', color: '#333', marginTop: 16, marginBottom: 6 },
+  container: { flex: 1, backgroundColor: Colors.bg },
+  content: { padding: Spacing.lg },
+  label: { fontSize: FontSize.body, fontWeight: '600', color: Colors.text, marginTop: Spacing.lg, marginBottom: 6 },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.md,
     paddingVertical: 10,
     fontSize: 15,
-    backgroundColor: '#fafafa',
+    backgroundColor: Colors.inputBg,
   },
   pickerBtn: { justifyContent: 'center' },
-  pickerText: { fontSize: 15, color: '#333' },
+  pickerText: { fontSize: 15, color: Colors.text },
   multiline: { minHeight: 100 },
   deleteBtn: {
     marginTop: 40,
     marginBottom: 20,
     alignSelf: 'center',
     paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#c0392b',
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.danger,
   },
-  deleteBtnText: { color: '#c0392b', fontSize: 16, fontWeight: '600' },
+  deleteBtnText: { color: Colors.white, fontSize: 16, fontWeight: '600' },
 });

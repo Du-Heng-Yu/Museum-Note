@@ -38,6 +38,7 @@ import {
 import { parseJsonArray, toJsonString } from '../utils/json';
 import { copyPhotosToPrivateDir, deletePhotoFiles } from '../utils/photo';
 import { consumePendingPhoto } from '../utils/pendingPhoto';
+import { Colors, Radius, Spacing, FontSize } from '../constants/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ArtifactEdit'>;
 
@@ -150,7 +151,7 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
       title: isEdit ? '编辑文物' : '添加文物',
       headerRight: () => (
         <TouchableOpacity onPress={handleSave} disabled={saving}>
-          <Text style={{ color: saving ? '#ccc' : '#4A90D9', fontSize: 16, fontWeight: '600' }}>
+          <Text style={{ color: saving ? Colors.border : Colors.accent, fontSize: 16, fontWeight: '600' }}>
             保存
           </Text>
         </TouchableOpacity>
@@ -503,7 +504,7 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
                         navigation.navigate('ExhibitionEdit', { fromArtifactEdit: true });
                       }}
                     >
-                      <Text style={[styles.modalItemText, { color: '#4A90D9' }]}>+ 新建展览</Text>
+                      <Text style={[styles.modalItemText, { color: Colors.accent }]}>+ 新建展览</Text>
                     </TouchableOpacity>
                   }
                 />
@@ -564,22 +565,22 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 16 },
-  label: { fontSize: 14, fontWeight: '600', color: '#333', marginTop: 16, marginBottom: 6 },
+  container: { flex: 1, backgroundColor: Colors.bg },
+  content: { padding: Spacing.lg },
+  label: { fontSize: FontSize.body, fontWeight: '600', color: Colors.text, marginTop: Spacing.lg, marginBottom: 6 },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.md,
     paddingVertical: 10,
     fontSize: 15,
-    backgroundColor: '#fafafa',
+    backgroundColor: Colors.inputBg,
   },
-  inputDisabled: { backgroundColor: '#eee', color: '#999' },
-  inputError: { borderColor: '#e74c3c' },
+  inputDisabled: { backgroundColor: Colors.card, color: Colors.textSecondary },
+  inputError: { borderColor: Colors.danger },
   multiline: { minHeight: 160 },
-  errorText: { color: '#e74c3c', fontSize: 12, marginTop: 4 },
+  errorText: { color: Colors.danger, fontSize: FontSize.caption, marginTop: Spacing.xs },
 
   yearDynastyRow: { flexDirection: 'row', gap: 10, marginTop: 0 },
   yearDynastyCol: { flex: 1 },
@@ -587,28 +588,28 @@ const styles = StyleSheet.create({
   modeBtn: {
     flex: 1,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: Radius.sm,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: Colors.border,
     alignItems: 'center',
-    backgroundColor: '#fafafa',
+    backgroundColor: Colors.inputBg,
   },
-  modeBtnActive: { borderColor: '#4A90D9', backgroundColor: '#EAF2FD' },
-  modeBtnText: { fontSize: 14, color: '#666' },
-  modeBtnTextActive: { color: '#4A90D9', fontWeight: '600' },
+  modeBtnActive: { borderColor: Colors.accent, backgroundColor: Colors.card },
+  modeBtnText: { fontSize: FontSize.body, color: Colors.textSecondary },
+  modeBtnTextActive: { color: Colors.accent, fontWeight: '600' },
 
   pickerBtn: { justifyContent: 'center' },
-  pickerText: { fontSize: 15, color: '#333' },
-  pickerPlaceholder: { fontSize: 15, color: '#aaa' },
+  pickerText: { fontSize: 15, color: Colors.text },
+  pickerPlaceholder: { fontSize: 15, color: Colors.textSecondary },
 
   altRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginTop: 6 },
-  altLabel: { fontSize: 13, color: '#888' },
-  altItem: { fontSize: 13, color: '#4A90D9', marginLeft: 6, textDecorationLine: 'underline' },
+  altLabel: { fontSize: FontSize.caption + 1, color: Colors.textSecondary },
+  altItem: { fontSize: FontSize.caption + 1, color: Colors.info, marginLeft: 6, textDecorationLine: 'underline' },
 
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: '#e0e0e0', marginTop: 20 },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.border, marginTop: Spacing.xl },
 
-  photoRow: { marginTop: 4 },
-  photoThumb: { marginRight: 8, borderRadius: 8, overflow: 'hidden' },
+  photoRow: { marginTop: Spacing.xs },
+  photoThumb: { marginRight: Spacing.sm, borderRadius: Radius.sm, overflow: 'hidden' },
   photoRemove: {
     position: 'absolute',
     top: 2,
@@ -620,11 +621,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  photoRemoveText: { color: '#fff', fontSize: 14, lineHeight: 16 },
+  photoRemoveText: { color: Colors.white, fontSize: FontSize.body, lineHeight: 16 },
   photoAdd: {
-    borderRadius: 8,
+    borderRadius: Radius.sm,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: Colors.border,
     borderStyle: 'dashed',
     overflow: 'hidden',
   },
@@ -633,7 +634,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  photoAddText: { fontSize: 28, color: '#ccc' },
+  photoAddText: { fontSize: 28, color: Colors.border },
   cameraIcon: { fontSize: 22, opacity: 0.4 },
   fullscreenOverlay: {
     flex: 1,
@@ -643,40 +644,40 @@ const styles = StyleSheet.create({
   },
   fullscreenImage: { width: '100%', height: '100%' },
 
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-  tag: { backgroundColor: '#EAF2FD', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14 },
-  tagText: { fontSize: 13, color: '#4A90D9' },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.sm },
+  tag: { backgroundColor: Colors.card, paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Colors.border },
+  tagText: { fontSize: FontSize.caption + 1, color: Colors.accent },
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: Colors.overlay,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    backgroundColor: Colors.surface,
+    borderTopLeftRadius: Radius.lg + 4,
+    borderTopRightRadius: Radius.lg + 4,
     maxHeight: '60%',
-    paddingTop: 16,
+    paddingTop: Spacing.lg,
   },
-  modalTitle: { fontSize: 16, fontWeight: '600', textAlign: 'center', marginBottom: 12 },
-  modalHint: { fontSize: 12, color: '#999', textAlign: 'center', marginTop: -6, marginBottom: 10 },
+  modalTitle: { fontSize: 16, fontWeight: '600', textAlign: 'center', marginBottom: Spacing.md, color: Colors.text },
+  modalHint: { fontSize: FontSize.caption, color: Colors.textSecondary, textAlign: 'center', marginTop: -6, marginBottom: 10 },
   modalItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.xl,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#eee',
+    borderBottomColor: Colors.border,
   },
-  modalItemText: { fontSize: 15, color: '#333', flex: 1 },
-  modalCheck: { fontSize: 16, color: '#4A90D9', marginLeft: 8 },
+  modalItemText: { fontSize: 15, color: Colors.text, flex: 1 },
+  modalCheck: { fontSize: 16, color: Colors.accent, marginLeft: Spacing.sm },
   modalClose: {
-    paddingVertical: 16,
+    paddingVertical: Spacing.lg,
     alignItems: 'center',
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#eee',
+    borderTopColor: Colors.border,
   },
-  modalCloseText: { fontSize: 15, color: '#999' },
+  modalCloseText: { fontSize: 15, color: Colors.textSecondary },
 });

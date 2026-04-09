@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { FONT_KAITI, FONT_TIMES } from '../constants/fonts';
+import { Colors, Spacing } from '../constants/theme';
 
 export default function AppHeader() {
   return (
@@ -30,31 +31,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    backgroundColor: '#f7f1e1',
+    paddingHorizontal: Spacing.lg,
+    backgroundColor: Colors.bg,
   },
   titleGroup: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 8,
+    gap: Spacing.sm,
   },
   titleMain: {
-    fontSize: 40,
+    fontSize: 36,
     fontFamily: FONT_KAITI,
-    color: '#1a1a1a',
-    letterSpacing: -3,
+    color: Colors.text,
+    letterSpacing: -2,
   },
   titleSub: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
     fontFamily: FONT_TIMES,
-    color: '#1a1a1a',
-    letterSpacing: 0,
+    color: Colors.textSecondary,
+    letterSpacing: 0.5,
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: Spacing.lg,
   },
   iconBtn: {
     width: 32,
@@ -69,9 +70,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#E0DCD5',
+    backgroundColor: Colors.card,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: Colors.border,
   },
   avatarText: {
     fontSize: 16,

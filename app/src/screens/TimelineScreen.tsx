@@ -20,6 +20,7 @@ import { DYNASTIES } from '../constants/dynasties';
 import { getDynastyCardColor } from '../constants/dynastyColors';
 import { FONT_KAITI, FONT_TIMES } from '../constants/fonts';
 import { parseJsonArray } from '../utils';
+import { Colors, Spacing, FontSize, Radius } from '../constants/theme';
 
 // ── Android LayoutAnimation ──
 if (
@@ -311,22 +312,22 @@ export default function TimelineScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f7f1e1',
+    backgroundColor: Colors.bg,
   },
   scroll: {
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 20,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xl,
   },
 
   // ── 朝代卡片（带衬线边框）──
   dynastyCard: {
-    borderRadius: 12,
+    borderRadius: Radius.lg,
     paddingHorizontal: CARD_H_PAD,
     paddingVertical: 6,
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
     borderWidth: 0.5,
-    borderColor: '#d3c9b4',
+    borderColor: Colors.border,
   },
   innerBorder: {
     position: 'absolute',
@@ -503,25 +504,25 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f7f1e1',
+    backgroundColor: Colors.bg,
     paddingHorizontal: 40,
   },
   emptyScroll: {
     fontSize: 52,
-    marginBottom: 24,
+    marginBottom: Spacing.xl,
     opacity: 0.6,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: FontSize.h2 + 2,
     fontWeight: '600',
     fontFamily: FONT_KAITI,
-    color: '#5C5649',
+    color: Colors.text,
     letterSpacing: 3,
     marginBottom: 14,
   },
   emptyHint: {
-    fontSize: 14,
-    color: '#A8A090',
+    fontSize: FontSize.body,
+    color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     fontFamily: FONT_KAITI,
