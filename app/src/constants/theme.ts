@@ -57,7 +57,7 @@ export const FontSize = {
   /** 正文 */
   body: 14,
   /** 辅助 / 标签 */
-  caption: 12,
+  caption: 13,
 } as const;
 
 // ── 按钮高度 ──

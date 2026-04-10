@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
+  Image,
   FlatList,
   TouchableOpacity,
   StyleSheet,
@@ -9,14 +10,16 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList, Exhibition } from '../types';
-import { getAllExhibitions, getExhibitionArtifactCount } from '../db';
+import { getAllExhibitions, getArtifactsByExhibitionId } from '../db';
 import { FONT_KAITI } from '../constants/fonts';
 import { Colors, Radius, Spacing, FontSize } from '../constants/theme';
+import { parseJsonArray } from '../utils';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 interface ExhibitionWithCount extends Exhibition {
   artifactCount: number;
+  coverPhotoUri: string | null;
 }
 
 export default function ExhibitionsScreen() {
@@ -27,10 +30,19 @@ export default function ExhibitionsScreen() {
     useCallback(() => {
       const list = getAllExhibitions();
       setExhibitions(
-        list.map((ex) => ({
-          ...ex,
-          artifactCount: getExhibitionArtifactCount(ex.id),
-        })),
+        list.map((ex) => {
+          const artifacts = getArtifactsByExhibitionId(ex.id);
+          const firstArtifact = artifacts[0];
+          const firstPhoto = firstArtifact
+            ? parseJsonArray(firstArtifact.photos)[0] ?? null
+            : null;
+
+          return {
+            ...ex,
+            artifactCount: artifacts.length,
+            coverPhotoUri: firstPhoto,
+          };
+        }),
       );
     }, []),
   );
@@ -42,16 +54,30 @@ export default function ExhibitionsScreen() {
         activeOpacity={0.7}
         onPress={() => navigation.navigate('ExhibitionDetail', { exhibitionId: item.id })}
       >
-        <View style={styles.cardTop}>
-          <Text style={styles.cardName} numberOfLines={1}>
-            {item.name}
-          </Text>
-          <Text style={styles.cardCount}>{item.artifactCount} 件文物</Text>
+        <View style={styles.cardBody}>
+          {item.coverPhotoUri ? (
+            <Image source={{ uri: item.coverPhotoUri }} style={styles.thumb} />
+          ) : (
+            <View style={[styles.thumb, styles.thumbPlaceholder]}>
+              <Text style={styles.thumbPlaceholderText}>🏛</Text>
+            </View>
+          )}
+
+          <View style={styles.cardContent}>
+            <View style={styles.cardTop}>
+              <Text style={styles.cardName} numberOfLines={1}>
+                {item.name}
+              </Text>
+            </View>
+            <Text style={styles.cardMuseum} numberOfLines={1}>
+              {item.museum}
+            </Text>
+            <View style={styles.cardBottomRow}>
+              <Text style={styles.cardCount}>共 {item.artifactCount} 件文物</Text>
+              <Text style={styles.cardDate}>{item.visit_date}</Text>
+            </View>
+          </View>
         </View>
-        <Text style={styles.cardMuseum} numberOfLines={1}>
-          {item.museum}
-        </Text>
-        <Text style={styles.cardDate}>{item.visit_date}</Text>
       </TouchableOpacity>
     );
   }
@@ -114,30 +140,68 @@ const styles = StyleSheet.create({
 
   listContent: { paddingHorizontal: Spacing.lg, paddingBottom: 100 },
   card: {
-    backgroundColor: Colors.card,
+    backgroundColor: '#e8d9b655',
     borderRadius: Radius.lg,
     padding: Spacing.lg,
     marginTop: Spacing.md,
     borderWidth: 0.5,
     borderColor: Colors.border,
   },
+  cardBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  thumb: {
+    width: 70,
+    height: 70,
+    borderRadius: Radius.sm,
+    marginRight: Spacing.md,
+    backgroundColor: Colors.inputBg,
+  },
+  thumbPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  thumbPlaceholderText: {
+    fontSize: 24,
+    opacity: 0.65,
+  },
+  cardContent: {
+    flex: 1,
+    minWidth: 0,
+  },
   cardTop: {
+    marginBottom: 3,
+  },
+  cardBottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
   },
   cardName: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: '600',
     fontFamily: FONT_KAITI,
     color: Colors.text,
-    flex: 1,
-    marginRight: Spacing.sm,
   },
-  cardCount: { fontSize: FontSize.caption, color: Colors.textSecondary },
-  cardMuseum: { fontSize: FontSize.body, color: Colors.text, marginBottom: Spacing.xs, opacity: 0.7 },
-  cardDate: { fontSize: FontSize.caption, color: Colors.textSecondary },
+  cardMuseum: {
+    fontSize: FontSize.body,
+    color: Colors.text,
+    opacity: 0.7,
+    marginBottom: Spacing.xs,
+    fontFamily: FONT_KAITI,
+  },
+  cardCount: {
+    fontSize: FontSize.caption,
+    color: Colors.textSecondary,
+    fontFamily: FONT_KAITI,
+  },
+  cardDate: {
+    fontSize: FontSize.caption,
+    color: Colors.textSecondary,
+    textAlign: 'right',
+        fontFamily: FONT_KAITI,
+  },
 
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
   emptyText: { fontSize: 15, color: Colors.textSecondary, textAlign: 'center', lineHeight: 24, fontFamily: FONT_KAITI },

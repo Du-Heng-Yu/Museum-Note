@@ -57,8 +57,8 @@ const DOT_TOP = 22;
 const LINE_W = 1.5;
 
 // ── 展开态配色 ──
-const EXPANDED_BG = '#233f5d';
-const EXPANDED_TEXT = '#d3bb86';
+const EXPANDED_BG = '#2f4858';
+const EXPANDED_TEXT = '#f3ce7d';
 
 // ══════════════════════════════════════════
 // 年份格式化
@@ -331,7 +331,10 @@ export default function TimelineScreen() {
                   <View
                     style={[
                       styles.lineSegment,
-                      { top: 0, height: DOT_TOP + DOT_SIZE / 2 },
+                      {
+                        top: -ROW_SPACING,
+                        height: DOT_TOP + DOT_SIZE / 2 + ROW_SPACING,
+                      },
                     ]}
                   />
                 )}
@@ -339,7 +342,10 @@ export default function TimelineScreen() {
                   <View
                     style={[
                       styles.lineSegment,
-                      { top: DOT_TOP + DOT_SIZE / 2, bottom: 0 },
+                      {
+                        top: DOT_TOP + DOT_SIZE / 2,
+                        bottom: -ROW_SPACING,
+                      },
                     ]}
                   />
                 )}
@@ -371,25 +377,21 @@ export default function TimelineScreen() {
                     }
                   >
                     <View style={styles.cardHeader}>
-                      <View style={styles.cardTitleArea}>
-                        <Text
-                          style={[styles.dynastyName, { color: textColor }]}
-                        >
-                          {dynasty.name}
-                        </Text>
-                        <Text
-                          style={[styles.dynastyYears, { color: textColor }]}
-                        >
-                          {formatYearRange(dynasty.startYear, dynasty.endYear)}
-                        </Text>
-                      </View>
-                      {items.length > 0 && (
-                        <Text
-                          style={[styles.artifactCount, { color: countColor }]}
-                        >
-                          {items.length} 件文物
-                        </Text>
-                      )}
+                      <Text style={[styles.dynastyName, { color: textColor }]}>
+                        {dynasty.name}
+                      </Text>
+                    </View>
+                    <View style={styles.cardMetaRow}>
+                      <Text
+                        style={[styles.dynastyYears, { color: textColor }]}
+                      >
+                        {formatYearRange(dynasty.startYear, dynasty.endYear)}
+                      </Text>
+                      <Text
+                        style={[styles.artifactCount, { color: countColor }]}
+                      >
+                        共 {items.length} 件文物
+                      </Text>
                     </View>
                   </Pressable>
 
@@ -442,6 +444,10 @@ export default function TimelineScreen() {
           );
         })}
 
+        <Text style={styles.timelineSourceNote}>
+          *时间轴划分参考来源：中国国家博物馆《中国古代历史年表》
+        </Text>
+
         <View style={styles.bottomSpacer} />
       </ScrollView>
     </View>
@@ -491,18 +497,20 @@ const styles = StyleSheet.create({
   yearCol: {
     width: YEAR_COL_W,
     alignItems: 'flex-end',
-    paddingRight: 4,
-    paddingTop: DOT_TOP - 2,
+    // paddingRight: 0,
+    paddingTop: DOT_TOP - 4,
   },
   yearText: {
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.textSecondary,
-    fontFamily: FONT_TIMES,
+    fontFamily: FONT_KAITI,
   },
 
   // ── 时间轴线列 ──
   lineCol: {
     width: LINE_COL_W,
+    position: 'relative',
+    alignSelf: 'stretch',
   },
   lineSegment: {
     position: 'absolute',
@@ -553,13 +561,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
   },
   cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  cardTitleArea: {
-    flex: 1,
-    marginRight: Spacing.sm,
+    marginTop: 2,
   },
   dynastyName: {
     fontSize: 26,
@@ -567,15 +569,20 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
     lineHeight: 32,
   },
-  dynastyYears: {
-    fontSize: 13,
-    fontFamily: FONT_TIMES,
+  cardMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginTop: 2,
+  },
+  dynastyYears: {
+    fontSize: 14,
+    fontFamily: FONT_TIMES,
   },
   artifactCount: {
     fontSize: FontSize.caption,
     color: Colors.textSecondary,
-    marginTop: 8,
+    fontFamily: FONT_KAITI,
   },
 
   // ── 展开/收起箭头 ──
@@ -680,9 +687,20 @@ const styles = StyleSheet.create({
     fontFamily: FONT_KAITI,
   },
 
+  timelineSourceNote: {
+    marginTop: 35,
+    paddingHorizontal: Spacing.lg,
+    textAlign: 'center',
+    fontSize: 12,
+    lineHeight: 17,
+    color: Colors.textSecondary,
+    opacity: 0.95,
+    fontFamily: FONT_KAITI,
+  },
+
   // ── 底部留白 ──
   bottomSpacer: {
-    height: 90,
+    height: 25,
   },
 
   // ── 空状态 ──
