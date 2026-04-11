@@ -15,9 +15,16 @@ import {
   Animated as RNAnimated,
   Keyboard,
   KeyboardAvoidingView,
+  Dimensions,
 } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import ReAnimated, { useSharedValue, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
+import ReAnimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  runOnJS,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -48,6 +55,303 @@ const MODE_KEY = 'artifact_edit_mode';
 type EditMode = 'auto_dynasty' | 'auto_year';
 
 const PHOTO_GAP = 10;
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+
+// ── 照片全屏预览组件（分页滑动 + 双指缩放 + 单击关闭）──
+function PhotoPreviewContent({
+  photoUris,
+  initialIndex,
+  onClose,
+  onIndexChange,
+}: {
+  photoUris: string[];
+  initialIndex: number;
+  onClose: () => void;
+  onIndexChange: (idx: number) => void;
+}) {
+  const total = photoUris.length;
+  const indexRef = useRef(initialIndex);
+  const totalRef = useRef(total);
+  totalRef.current = total;
+
+  // 分页偏移：pageX = -currentIndex * SCREEN_WIDTH，始终代表当前页位置
+  const pageX = useSharedValue(-initialIndex * SCREEN_WIDTH);
+  const savedPageX = useSharedValue(-initialIndex * SCREEN_WIDTH);
+  const [displayIndex, setDisplayIndex] = useState(initialIndex);
+
+  // 缩放/平移（仅当前页放大时生效）
+  const scale = useSharedValue(1);
+  const savedScale = useSharedValue(1);
+  const imgTransX = useSharedValue(0);
+  const imgTransY = useSharedValue(0);
+  const savedImgTransX = useSharedValue(0);
+  const savedImgTransY = useSharedValue(0);
+  const focalOffsetX = useSharedValue(0);
+  const focalOffsetY = useSharedValue(0);
+
+  function resetZoom() {
+    'worklet';
+    scale.value = 1;
+    savedScale.value = 1;
+    imgTransX.value = 0;
+    imgTransY.value = 0;
+    savedImgTransX.value = 0;
+    savedImgTransY.value = 0;
+    focalOffsetX.value = 0;
+    focalOffsetY.value = 0;
+  }
+
+  function snapToIndex(idx: number) {
+    'worklet';
+    indexRef.current = idx;
+    pageX.value = withTiming(-idx * SCREEN_WIDTH, { duration: 250 });
+    savedPageX.value = -idx * SCREEN_WIDTH;
+    resetZoom();
+    runOnJS(setDisplayIndex)(idx);
+    runOnJS(onIndexChange)(idx);
+  }
+
+  // 整个横条的动画样式
+  const stripStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: pageX.value }],
+  }));
+
+  // 每张图的缩放/平移样式（只应用于当前页）
+  const zoomStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: imgTransX.value + focalOffsetX.value },
+      { translateY: imgTransY.value + focalOffsetY.value },
+      { scale: scale.value },
+    ],
+  }));
+
+  // ── 缩放手势 ──
+  const pinchGesture = Gesture.Pinch()
+    .onStart(() => {
+      savedScale.value = scale.value;
+      savedImgTransX.value = imgTransX.value;
+      savedImgTransY.value = imgTransY.value;
+    })
+    .onUpdate((e) => {
+      const newScale = Math.max(0.5, Math.min(6, savedScale.value * e.scale));
+      scale.value = newScale;
+
+      // focalX 是相对于整个 strip 的坐标，需要减去当前页在 strip 中的偏移
+      const pageCenterX = indexRef.current * SCREEN_WIDTH + SCREEN_WIDTH / 2;
+      const centerY = SCREEN_HEIGHT / 2;
+      const dx = e.focalX - pageCenterX;
+      const dy = e.focalY - centerY;
+      const scaleDiff = newScale / savedScale.value;
+      focalOffsetX.value = dx * (1 - scaleDiff);
+      focalOffsetY.value = dy * (1 - scaleDiff);
+    })
+    .onEnd(() => {
+      // 合并焦点补偿到图片位移
+      savedImgTransX.value = imgTransX.value + focalOffsetX.value;
+      savedImgTransY.value = imgTransY.value + focalOffsetY.value;
+      imgTransX.value = savedImgTransX.value;
+      imgTransY.value = savedImgTransY.value;
+      focalOffsetX.value = 0;
+      focalOffsetY.value = 0;
+      savedScale.value = scale.value;
+
+      // 如果缩小到 1x 以下，弹回到 1x
+      if (scale.value < 1) {
+        scale.value = withSpring(1);
+        savedScale.value = 1;
+        imgTransX.value = withSpring(0);
+        imgTransY.value = withSpring(0);
+        savedImgTransX.value = 0;
+        savedImgTransY.value = 0;
+      }
+    });
+
+  // ── 单指平移：1x 时分页，放大时拖图 ──
+  const panGesture = Gesture.Pan()
+    .minPointers(1)
+    .maxPointers(1)
+    .onStart(() => {
+      savedPageX.value = pageX.value;
+      savedImgTransX.value = imgTransX.value;
+      savedImgTransY.value = imgTransY.value;
+    })
+    .onUpdate((e) => {
+      if (scale.value > 1.05) {
+        // 缩放状态：只拖动图片，不拖动横条
+        imgTransX.value = savedImgTransX.value + e.translationX;
+        imgTransY.value = savedImgTransY.value + e.translationY;
+      } else {
+        // 1x 状态：拖动整个横条（分页）
+        let raw = savedPageX.value + e.translationX;
+
+        // 边界阻尼：到头了还往外拽就加阻力
+        const minX = -(totalRef.current - 1) * SCREEN_WIDTH;
+        if (raw > 0) {
+          raw = raw * 0.3;
+        } else if (raw < minX) {
+          raw = minX + (raw - minX) * 0.3;
+        }
+        pageX.value = raw;
+      }
+    })
+    .onEnd((e) => {
+      if (scale.value > 1.05) {
+        // 缩放状态：保存新的图片位置
+        savedImgTransX.value = imgTransX.value;
+        savedImgTransY.value = imgTransY.value;
+      } else {
+        // 1x 状态：根据拖动距离 + 速度决定是否切页
+        const idx = indexRef.current;
+        const dragDistance = pageX.value - (-idx * SCREEN_WIDTH);
+        const absVelocity = Math.abs(e.velocityX);
+
+        // 动态阈值：速度快时阈值更低，让用户可以快速翻页
+        let threshold = SCREEN_WIDTH * 0.4;
+        if (absVelocity > 1000) {
+          threshold = SCREEN_WIDTH * 0.2;  // 速度很快
+        } else if (absVelocity > 500) {
+          threshold = SCREEN_WIDTH * 0.3;  // 速度中等
+        }
+
+        // 判断方向：拖动距离 + 速度方向一致才能切页
+        const shouldGoNext = dragDistance < -threshold && idx + 1 < totalRef.current;
+        const shouldGoPrev = dragDistance > threshold && idx - 1 >= 0;
+
+        if (shouldGoNext) {
+          snapToIndex(idx + 1);
+        } else if (shouldGoPrev) {
+          snapToIndex(idx - 1);
+        } else {
+          // 弹回当前页，根据速度调整弹性
+          const springConfig =
+            absVelocity > 800
+              ? { damping: 10, mass: 1, stiffness: 100 }  // 速度快时更弹
+              : { damping: 13, mass: 1, stiffness: 100 };  // 速度慢时平稳
+
+          pageX.value = withSpring(-idx * SCREEN_WIDTH, springConfig);
+          savedPageX.value = -idx * SCREEN_WIDTH;
+        }
+      }
+    });
+
+  // ── 单击关闭（仅 1x 时）──
+  const tapGesture = Gesture.Tap().onEnd(() => {
+    if (scale.value <= 1.05) {
+      runOnJS(onClose)();
+    }
+  });
+
+  // ── 双击缩放切换 ──
+  const doubleTapGesture = Gesture.Tap()
+    .numberOfTaps(2)
+    .onEnd((e) => {
+      if (scale.value > 1.05) {
+        // 取消缩放
+        scale.value = withTiming(1, { duration: 250 });
+        savedScale.value = 1;
+        imgTransX.value = withTiming(0, { duration: 250 });
+        imgTransY.value = withTiming(0, { duration: 250 });
+        savedImgTransX.value = 0;
+        savedImgTransY.value = 0;
+        focalOffsetX.value = 0;
+        focalOffsetY.value = 0;
+      } else {
+        // 放大到 2.5x，围绕双击地点
+        // e.x 是相对于整个 strip 的坐标，需要减去当前页偏移
+        const newScale = 2.5;
+        const pageCenterX = indexRef.current * SCREEN_WIDTH + SCREEN_WIDTH / 2;
+        const centerY = SCREEN_HEIGHT / 2;
+        const dx = e.x - pageCenterX;
+        const dy = e.y - centerY;
+        const offsetX = dx * (1 - newScale);
+        const offsetY = dy * (1 - newScale);
+
+        scale.value = withTiming(newScale, { duration: 250 });
+        savedScale.value = newScale;
+        imgTransX.value = withTiming(offsetX, { duration: 250 });
+        imgTransY.value = withTiming(offsetY, { duration: 250 });
+        savedImgTransX.value = offsetX;
+        savedImgTransY.value = offsetY;
+        focalOffsetX.value = 0;
+        focalOffsetY.value = 0;
+      }
+    });
+
+  const composed = Gesture.Race(
+    pinchGesture,
+    panGesture,
+    Gesture.Exclusive(doubleTapGesture, tapGesture),
+  );
+
+  return (
+    <View style={previewStyles.overlay}>
+      <GestureDetector gesture={composed}>
+        <ReAnimated.View style={[previewStyles.strip, { width: total * SCREEN_WIDTH }, stripStyle]}>
+          {photoUris.map((uri, i) => (
+            <ReAnimated.View
+              key={`preview-${i}`}
+              style={[
+                previewStyles.page,
+                i === displayIndex ? zoomStyle : undefined,
+              ]}
+            >
+              <Image
+                source={{ uri }}
+                style={previewStyles.image}
+                resizeMode="contain"
+              />
+            </ReAnimated.View>
+          ))}
+        </ReAnimated.View>
+      </GestureDetector>
+
+      {/* 页码指示器 */}
+      {total > 1 && (
+        <View style={previewStyles.indicator} pointerEvents="none">
+          <Text style={previewStyles.indicatorText}>
+            {displayIndex + 1} / {total}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const previewStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    overflow: 'hidden',
+  },
+  strip: {
+    flexDirection: 'row',
+    height: SCREEN_HEIGHT,
+  },
+  page: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  image: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+  },
+  indicator: {
+    position: 'absolute',
+    bottom: 48,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 99,
+  },
+  indicatorText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+});
 
 function DraggablePhotoItem({
   uri,
@@ -136,7 +440,7 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
   const [showExhibitionPicker, setShowExhibitionPicker] = useState(false);
   const [showDynastyPicker, setShowDynastyPicker] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [previewUri, setPreviewUri] = useState<string | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   const nameInputRef = useRef<TextInput>(null);
   const originalPhotos = useRef<string[]>([]);
@@ -477,7 +781,10 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
             dragX={dragTranslateX}
             onDragStart={handlePhotoDragStart}
             onDragEnd={handlePhotoDragEnd}
-            onPress={setPreviewUri}
+            onPress={(uri) => {
+              const idx = photoUris.indexOf(uri);
+              setPreviewIndex(idx >= 0 ? idx : 0);
+            }}
             onRemove={handleRemovePhoto}
           />
         ))}
@@ -658,15 +965,14 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
       </Modal>
     </ScrollView>
 
-    {/* 照片全屏预览 */}
-    <Modal visible={previewUri !== null} transparent animationType="fade">
-      <TouchableWithoutFeedback onPress={() => setPreviewUri(null)}>
-        <View style={styles.fullscreenOverlay}>
-          {previewUri && (
-            <Image source={{ uri: previewUri }} style={styles.fullscreenImage} resizeMode="contain" />
-          )}
-        </View>
-      </TouchableWithoutFeedback>
+    {/* 照片全屏预览：左右滑动切换 + 双指缩放 */}
+    <Modal visible={previewIndex !== null} transparent animationType="fade">
+      <PhotoPreviewContent
+        photoUris={photoUris}
+        initialIndex={previewIndex ?? 0}
+        onClose={() => setPreviewIndex(null)}
+        onIndexChange={(idx) => setPreviewIndex(idx)}
+      />
     </Modal>
     </KeyboardAvoidingView>
   );
