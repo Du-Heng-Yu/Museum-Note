@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "观展助手",
-    "slug": "guanzhan-helper",
+    "name": "博物馆笔记",
+    "slug": "museum-note",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,12 +13,7 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
-      "infoPlist": {
-        "NSCameraUsageDescription": "用于拍摄展品和展牌照片，保存到观展记录中。",
-        "NSPhotoLibraryUsageDescription": "用于从相册导入展品和文字板图片。",
-        "NSLocationWhenInUseUsageDescription": "用于快速填写展览地点。"
-      }
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
@@ -27,31 +22,37 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "CAMERA",
-        "READ_MEDIA_IMAGES",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
-      ]
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-sqlite",
       [
-        "expo-image-picker",
+        "expo-sqlite"
+      ],
+      [
+        "expo-camera",
         {
-          "photosPermission": "允许观展助手访问你的相册以导入图片。",
-          "cameraPermission": "允许观展助手使用相机拍摄展品和展牌。"
+          "cameraPermission": "允许博物馆笔记使用相机拍摄文物照片"
         }
       ],
       [
-        "expo-location",
+        "expo-image-picker",
         {
-          "locationWhenInUsePermission": "允许观展助手在使用时访问定位以填写展览地点。"
+          "cameraPermission": "允许博物馆笔记使用相机拍摄文物照片",
+          "photosPermission": "允许博物馆笔记访问相册以选择文物照片"
         }
-      ]
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "允许博物馆笔记将拍摄的照片保存到系统相册"
+        }
+      ],
+      "./plugins/withFragileUserData",
+      "@react-native-community/datetimepicker",
+      "expo-font"
     ]
   }
 }

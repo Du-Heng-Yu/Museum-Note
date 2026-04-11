@@ -1,95 +1,86 @@
-import 'react-native-gesture-handler';
-
+import React, { useEffect, useState, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as Font from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
+import AppNavigator from './src/navigation/AppNavigator';
+import { initDatabase } from './src/db/database';
 
-import { initializeDatabase } from './src/db';
-import { AppNavigator } from './src/navigation/AppNavigator';
-import { colors } from './src/theme/colors';
+// 在组件渲染前阻止 Splash Screen 自动隐藏
+SplashScreen.preventAutoHideAsync();
 
 export default function App() {
-  const [ready, setReady] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const bootstrap = async () => {
-    try {
-      setError(null);
-      await initializeDatabase();
-      setReady(true);
-    } catch {
-      setError('本地数据库初始化失败，请重试。');
-      setReady(false);
-    }
-  };
+  const [appReady, setAppReady] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
 
   useEffect(() => {
-    void bootstrap();
+    async function prepare() {
+      try {
+        // 并行加载字体 + 初始化数据库
+        await Font.loadAsync({
+          KaitiSimple: require('./assets/fonts/Kaiti-Simple.ttf'),
+        });
+        initDatabase();
+        setAppReady(true);
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
+        console.error('[App] 初始化失败:', message);
+        setDbError(message);
+      }
+    }
+    prepare();
   }, []);
 
-  if (!ready) {
+  const onLayoutRootView = useCallback(async () => {
+    if (appReady || dbError) {
+      await SplashScreen.hideAsync();
+    }
+  }, [appReady, dbError]);
+
+  if (dbError) {
     return (
-      <View style={styles.bootContainer}>
-        {error ? (
-          <>
-            <Text style={styles.errorTitle}>启动失败</Text>
-            <Text style={styles.errorText}>{error}</Text>
-            <Pressable style={styles.retryButton} onPress={bootstrap}>
-              <Text style={styles.retryButtonText}>重试</Text>
-            </Pressable>
-          </>
-        ) : (
-          <>
-            <ActivityIndicator size="large" color={colors.accent} />
-            <Text style={styles.loadingText}>正在初始化观展助手...</Text>
-          </>
-        )}
-        <StatusBar style="dark" />
+      <View style={styles.container} onLayout={onLayoutRootView}>
+        <Text style={styles.errorText}>数据库初始化失败</Text>
+        <Text style={styles.errorDetail}>{dbError}</Text>
       </View>
     );
   }
 
+  if (!appReady) {
+    return null; // SplashScreen 仍然显示
+  }
+
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
+      <StatusBar style="auto" />
       <AppNavigator />
-      <StatusBar style="dark" />
-    </>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  bootContainer: {
+  container: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: '#fff',
     alignItems: 'center',
-    backgroundColor: colors.background,
-    paddingHorizontal: 24,
-    gap: 14,
+    justifyContent: 'center',
   },
   loadingText: {
-    color: colors.textSecondary,
-    fontSize: 15,
-  },
-  errorTitle: {
-    color: colors.textPrimary,
-    fontSize: 22,
-    fontWeight: '800',
+    marginTop: 12,
+    fontSize: 14,
+    color: '#888',
   },
   errorText: {
-    color: colors.textSecondary,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#e74c3c',
+    marginBottom: 8,
+  },
+  errorDetail: {
     fontSize: 14,
+    color: '#888',
     textAlign: 'center',
-    lineHeight: 20,
-  },
-  retryButton: {
-    backgroundColor: colors.accent,
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  retryButtonText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 14,
+    paddingHorizontal: 20,
   },
 });
