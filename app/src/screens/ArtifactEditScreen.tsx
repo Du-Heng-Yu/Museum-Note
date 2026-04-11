@@ -16,6 +16,8 @@ import {
   Keyboard,
   KeyboardAvoidingView,
 } from 'react-native';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import ReAnimated, { useSharedValue, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -44,6 +46,71 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ArtifactEdit'>;
 
 const MODE_KEY = 'artifact_edit_mode';
 type EditMode = 'auto_dynasty' | 'auto_year';
+
+const PHOTO_GAP = 10;
+
+function DraggablePhotoItem({
+  uri,
+  index,
+  size,
+  isActive,
+  dragX,
+  onDragStart,
+  onDragEnd,
+  onPress,
+  onRemove,
+}: {
+  uri: string;
+  index: number;
+  size: RNAnimated.Value;
+  isActive: boolean;
+  dragX: { value: number };
+  onDragStart: (idx: number) => void;
+  onDragEnd: (fromIdx: number, tx: number) => void;
+  onPress: (u: string) => void;
+  onRemove: (idx: number) => void;
+}) {
+  const gesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .activateAfterLongPress(300)
+        .onStart(() => {
+          runOnJS(onDragStart)(index);
+        })
+        .onUpdate((e) => {
+          dragX.value = e.translationX;
+        })
+        .onEnd((e) => {
+          const tx = e.translationX;
+          dragX.value = 0;
+          runOnJS(onDragEnd)(index, tx);
+        }),
+    [index, dragX, onDragStart, onDragEnd],
+  );
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: isActive ? dragX.value : 0 },
+      { scale: isActive ? 1.05 : 1 },
+    ],
+    zIndex: isActive ? 999 : 0,
+  }));
+
+  return (
+    <GestureDetector gesture={gesture}>
+      <ReAnimated.View style={animStyle}>
+        <TouchableOpacity activeOpacity={0.8} onPress={() => onPress(uri)}>
+          <RNAnimated.View style={[styles.photoThumb, { width: size, height: size }]}>
+            <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+            <TouchableOpacity style={styles.photoRemove} onPress={() => onRemove(index)}>
+              <Text style={styles.photoRemoveText}>×</Text>
+            </TouchableOpacity>
+          </RNAnimated.View>
+        </TouchableOpacity>
+      </ReAnimated.View>
+    </GestureDetector>
+  );
+}
 
 export default function ArtifactEditScreen({ route, navigation }: Props) {
   const artifactId = route.params?.artifactId;
@@ -76,6 +143,12 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
   const photoSize = useRef(new RNAnimated.Value(80)).current;
   const waitingForNewExhibition = useRef(false);
 
+  // Drag-to-reorder
+  const [activeDragIndex, setActiveDragIndex] = useState<number | null>(null);
+  const [photoScrollEnabled, setPhotoScrollEnabled] = useState(true);
+  const dragTranslateX = useSharedValue(0);
+  const currentPhotoSizeRef = useRef(80);
+
   // Load persisted mode
   useEffect(() => {
     AsyncStorage.getItem(MODE_KEY).then((v) => {
@@ -98,9 +171,11 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     const onShow = Keyboard.addListener(showEvent, () => {
+      currentPhotoSizeRef.current = 40;
       RNAnimated.spring(photoSize, { toValue: 40, useNativeDriver: false, damping: 15, stiffness: 150 }).start();
     });
     const onHide = Keyboard.addListener(hideEvent, () => {
+      currentPhotoSizeRef.current = 80;
       RNAnimated.spring(photoSize, { toValue: 80, useNativeDriver: false, damping: 15, stiffness: 150 }).start();
     });
     return () => { onShow.remove(); onHide.remove(); };
@@ -245,6 +320,27 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
     navigation.navigate('Camera', { fromEdit: true });
   }
 
+  // Drag-to-reorder handlers
+  const handlePhotoDragStart = useCallback((index: number) => {
+    setActiveDragIndex(index);
+    setPhotoScrollEnabled(false);
+  }, []);
+
+  const handlePhotoDragEnd = useCallback((fromIndex: number, translationX: number) => {
+    const slotWidth = currentPhotoSizeRef.current + PHOTO_GAP;
+    const movedSlots = Math.round(translationX / slotWidth);
+    setPhotoUris((prev) => {
+      const targetIndex = Math.max(0, Math.min(prev.length - 1, fromIndex + movedSlots));
+      if (targetIndex === fromIndex) return prev;
+      const arr = [...prev];
+      const [item] = arr.splice(fromIndex, 1);
+      arr.splice(targetIndex, 0, item);
+      return arr;
+    });
+    setActiveDragIndex(null);
+    setPhotoScrollEnabled(true);
+  }, []);
+
   // --- Tags ---
   function handleAddTag() {
     const t = tagInput.trim();
@@ -363,22 +459,27 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={styles.content}
     >
-      {/* 照片 */}
+      {/* 照片（长按拖拽排序） */}
       <ScrollView
         horizontal
         style={styles.photoRow}
         contentContainerStyle={styles.photoRowContent}
         showsHorizontalScrollIndicator={false}
+        scrollEnabled={photoScrollEnabled}
       >
         {photoUris.map((uri, i) => (
-          <TouchableOpacity key={`${uri}-${i}`} activeOpacity={0.8} onPress={() => setPreviewUri(uri)}>
-            <RNAnimated.View style={[styles.photoThumb, { width: photoSize, height: photoSize }]}>
-              <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-              <TouchableOpacity style={styles.photoRemove} onPress={() => handleRemovePhoto(i)}>
-                <Text style={styles.photoRemoveText}>×</Text>
-              </TouchableOpacity>
-            </RNAnimated.View>
-          </TouchableOpacity>
+          <DraggablePhotoItem
+            key={`${uri}-${i}`}
+            uri={uri}
+            index={i}
+            size={photoSize}
+            isActive={activeDragIndex === i}
+            dragX={dragTranslateX}
+            onDragStart={handlePhotoDragStart}
+            onDragEnd={handlePhotoDragEnd}
+            onPress={setPreviewUri}
+            onRemove={handleRemovePhoto}
+          />
         ))}
         <RNAnimated.View style={[styles.photoAdd, { width: photoSize, height: photoSize, marginRight: 8 }]}>
           <TouchableOpacity style={StyleSheet.absoluteFill} onPress={handleAddPhotos}>
