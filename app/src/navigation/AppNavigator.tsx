@@ -207,6 +207,9 @@ export default function AppNavigator() {
       <Stack.Navigator
         screenOptions={{
           ...StackHeaderOptions,
+          headerBackButtonDisplayMode: 'minimal',
+          headerBackTitle: '',
+          headerBackButtonMenuEnabled: false,
           headerTitleStyle: { fontFamily: FONT_KAITI, fontSize: 18, color: Colors.text },
         }}
       >

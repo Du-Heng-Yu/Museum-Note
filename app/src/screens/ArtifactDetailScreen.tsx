@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useLayoutEffect } from 'react';
+import React, { useState, useCallback, useLayoutEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,17 +9,22 @@ import {
   StyleSheet,
   Dimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, Artifact, Exhibition } from '../types';
 import { getArtifactById, deleteArtifact, getExhibitionById } from '../db';
 import { parseJsonArray } from '../utils/json';
-import { FONT_KAITI, FONT_TIMES } from '../constants/fonts';
-import { Colors, Radius, Spacing, FontSize } from '../constants/theme';
+import { DYNASTIES } from '../constants/dynasties';
+import { FONT_KAITI } from '../constants/fonts';
+import { Radius, Spacing, FontSize } from '../constants/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ArtifactDetail'>;
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
+const PHOTO_SECTION_FLEX = 2;
+const INFO_SECTION_FLEX = 1;
+const DEFAULT_PHOTO_HEIGHT = SCREEN_WIDTH * 0.78;
 
 function formatYear(year: number): string {
   if (year < 0) return `BC${Math.abs(year)}`;
@@ -30,6 +35,9 @@ export default function ArtifactDetailScreen({ route, navigation }: Props) {
   const { artifactId } = route.params;
   const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [exhibition, setExhibition] = useState<Exhibition | null>(null);
+  const [photoSizes, setPhotoSizes] = useState<Record<number, { width: number; height: number }>>({});
+  const [infoViewportHeight, setInfoViewportHeight] = useState(0);
+  const [isInfoScrollable, setIsInfoScrollable] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -45,6 +53,14 @@ export default function ArtifactDetailScreen({ route, navigation }: Props) {
 
   useLayoutEffect(() => {
     navigation.setOptions({
+      headerStyle: { backgroundColor: '#000000' },
+      headerShadowVisible: false,
+      headerTintColor: '#e2c79d',
+      headerTitleStyle: {
+        color: '#e2c79d',
+        fontFamily: FONT_KAITI,
+        fontSize: 18,
+      },
       headerRight: () => (
         <View style={styles.headerActions}>
           <TouchableOpacity
@@ -59,7 +75,7 @@ export default function ArtifactDetailScreen({ route, navigation }: Props) {
         </View>
       ),
     });
-  });
+  }, [navigation, artifactId]);
 
   function handleDelete() {
     Alert.alert('确认删除', '删除后文物记录及照片将无法恢复，确认删除？', [
@@ -75,6 +91,34 @@ export default function ArtifactDetailScreen({ route, navigation }: Props) {
     ]);
   }
 
+  const dynastyRangeText = useMemo(() => {
+    if (!artifact) return '';
+
+    const matchedDynasty = DYNASTIES.find((d) => d.name === artifact.dynasty);
+    if (matchedDynasty) {
+      return `${formatYear(matchedDynasty.startYear)}-${formatYear(matchedDynasty.endYear)}`;
+    }
+
+    return formatYear(artifact.year);
+  }, [artifact]);
+
+  const handleInfoLayout = useCallback((event: { nativeEvent: { layout: { height: number } } }) => {
+    const nextHeight = event.nativeEvent.layout.height;
+    setInfoViewportHeight((prev) => (prev === nextHeight ? prev : nextHeight));
+  }, []);
+
+  const handleInfoContentSizeChange = useCallback(
+    (_contentWidth: number, contentHeight: number) => {
+      if (infoViewportHeight <= 0) return;
+
+      const nextScrollable = contentHeight > infoViewportHeight + 1;
+      setIsInfoScrollable((prev) =>
+        prev === nextScrollable ? prev : nextScrollable,
+      );
+    },
+    [infoViewportHeight],
+  );
+
   if (!artifact) {
     return (
       <View style={styles.emptyContainer}>
@@ -84,161 +128,249 @@ export default function ArtifactDetailScreen({ route, navigation }: Props) {
   }
 
   const photos = parseJsonArray(artifact.photos);
-  const tags = parseJsonArray(artifact.tags);
+  const isSinglePhoto = photos.length === 1;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* 照片横向滚动 */}
-      {photos.length > 0 && (
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          style={styles.photoScroller}
-        >
-          {photos.map((uri, i) => (
-            <Image
-              key={`${uri}-${i}`}
-              source={{ uri }}
-              style={styles.photo}
-              resizeMode="cover"
-            />
-          ))}
-        </ScrollView>
-      )}
-
-      <View style={styles.infoSection}>
-        {/* 文物名称 */}
-        <Text style={styles.artifactName}>{artifact.name}</Text>
-
-        {/* 年代 & 朝代 */}
-        <View style={styles.metaRow}>
-          <Text style={styles.metaLabel}>年代</Text>
-          <Text style={styles.metaValue}>
-            {formatYear(artifact.year)} · {artifact.dynasty}
-          </Text>
-        </View>
-
-        {/* 所属展览（可点击） */}
-        {exhibition && (
-          <TouchableOpacity
-            style={styles.metaRow}
-            activeOpacity={0.6}
-            onPress={() =>
-              navigation.navigate('ExhibitionDetail', {
-                exhibitionId: exhibition.id,
-              })
-            }
+    <View style={styles.container}>
+      <View style={styles.photoSection}>
+        {photos.length > 0 ? (
+          <ScrollView
+            style={styles.photoScroller}
+            contentContainerStyle={[
+              styles.photoScrollerContent,
+              isSinglePhoto ? styles.photoScrollerSingle : styles.photoScrollerMultiple,
+            ]}
+            showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.metaLabel}>展览</Text>
-            <Text style={[styles.metaValue, styles.linkText]}>
-              {exhibition.name} · {exhibition.museum}
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {/* 文物说明 */}
-        {artifact.description ? (
-          <View style={styles.textBlock}>
-            <Text style={styles.blockLabel}>文物说明</Text>
-            <Text style={styles.blockText}>{artifact.description}</Text>
-          </View>
-        ) : null}
-
-        {/* 个人备注 */}
-        {artifact.note ? (
-          <View style={styles.textBlock}>
-            <Text style={styles.blockLabel}>个人备注</Text>
-            <Text style={styles.blockText}>{artifact.note}</Text>
-          </View>
-        ) : null}
-
-        {/* 标签 */}
-        {tags.length > 0 && (
-          <View style={styles.tagsSection}>
-            <Text style={styles.blockLabel}>标签</Text>
-            <View style={styles.tagsRow}>
-              {tags.map((tag) => (
-                <View key={tag} style={styles.tagChip}>
-                  <Text style={styles.tagText}>{tag}</Text>
-                </View>
-              ))}
-            </View>
+            {photos.map((uri, i) => (
+              <Image
+                key={`${uri}-${i}`}
+                source={{ uri }}
+                style={[
+                  styles.photo,
+                  {
+                    width: photoSizes[i]
+                      ? Math.min(SCREEN_WIDTH, photoSizes[i].width)
+                      : SCREEN_WIDTH,
+                    height: photoSizes[i]
+                      ? photoSizes[i].height *
+                        (Math.min(SCREEN_WIDTH, photoSizes[i].width) /
+                          photoSizes[i].width)
+                      : DEFAULT_PHOTO_HEIGHT,
+                  },
+                ]}
+                resizeMode="contain"
+                onLoad={(event) => {
+                  const { width, height } = event.nativeEvent.source;
+                  if (width > 0 && height > 0) {
+                    setPhotoSizes((prev) => {
+                      const existing = prev[i];
+                      if (
+                        existing &&
+                        existing.width === width &&
+                        existing.height === height
+                      ) {
+                        return prev;
+                      }
+                      return { ...prev, [i]: { width, height } };
+                    });
+                  }
+                }}
+              />
+            ))}
+          </ScrollView>
+        ) : (
+          <View style={styles.emptyPhotoArea}>
+            <Text style={styles.emptyPhotoText}>暂无照片</Text>
           </View>
         )}
       </View>
-    </ScrollView>
+
+      <View style={styles.infoSection}>
+        <LinearGradient
+          pointerEvents="none"
+          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0.92)', '#000000']}
+          style={styles.infoTopFade}
+        />
+
+        <ScrollView
+          style={styles.infoScroll}
+          contentContainerStyle={styles.infoContent}
+          onLayout={handleInfoLayout}
+          onContentSizeChange={handleInfoContentSizeChange}
+          scrollEnabled={isInfoScrollable}
+          bounces={isInfoScrollable}
+          alwaysBounceVertical={false}
+          showsVerticalScrollIndicator={isInfoScrollable}
+        >
+          <Text style={styles.artifactName}>{artifact.name}</Text>
+
+          <Text style={styles.metaLine}>
+            年代：{artifact.dynasty}（{dynastyRangeText}）
+          </Text>
+
+          {artifact.description ? (
+            <Text style={styles.descriptionText}>文物介绍：{artifact.description}</Text>
+          ) : null}
+
+          {exhibition && (
+            <TouchableOpacity
+              style={styles.exhibitionCard}
+              activeOpacity={0.78}
+              onPress={() =>
+                navigation.navigate('ExhibitionDetail', {
+                  exhibitionId: exhibition.id,
+                })
+              }
+            >
+              <View style={styles.exhibitionTextWrap}>
+                <Text style={styles.exhibitionLabel}>展览信息</Text>
+                <Text style={styles.exhibitionName} numberOfLines={1}>
+                  {exhibition.name}
+                </Text>
+                <Text style={styles.exhibitionMuseum} numberOfLines={1}>
+                  {exhibition.museum}
+                </Text>
+              </View>
+
+              <View style={styles.exhibitionArrowWrap}>
+                <View style={styles.exhibitionChevronIcon} />
+              </View>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
-  content: { paddingBottom: 40 },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
-  emptyText: { fontSize: 16, color: Colors.textSecondary },
+  container: { flex: 1, backgroundColor: '#000000' },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000000' },
+  emptyText: { fontSize: 16, color: '#8f8f8f' },
   headerActions: { flexDirection: 'row', gap: Spacing.md },
   headerBtn: { paddingHorizontal: Spacing.xs },
-  headerBtnText: { fontSize: 16, fontWeight: '600', color: Colors.accent },
+  headerBtnText: { fontSize: 16, fontWeight: '600', color: '#e2c79d' },
 
-  // 照片
-  photoScroller: { height: SCREEN_WIDTH * 0.75 },
-  photo: { width: SCREEN_WIDTH, height: SCREEN_WIDTH * 0.75 },
+  // 照片区（2/3）
+  photoSection: {
+    flex: PHOTO_SECTION_FLEX,
+    backgroundColor: '#000000',
+  },
+  photoScroller: {
+    flex: 1,
+  },
+  photoScrollerContent: {
+    alignItems: 'center',
+  },
+  photoScrollerSingle: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  photoScrollerMultiple: {},
+  photo: {
+    alignSelf: 'center',
+    marginBottom: 0,
+    backgroundColor: '#000000',
+  },
+  emptyPhotoArea: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyPhotoText: {
+    fontSize: FontSize.body,
+    color: '#8f8f8f',
+    fontFamily: FONT_KAITI,
+  },
 
-  // 信息区
+  // 信息区（1/3）
   infoSection: {
-    margin: Spacing.lg,
-    padding: Spacing.lg,
-    backgroundColor: Colors.card,
-    borderRadius: Radius.lg,
-    borderWidth: 0.5,
-    borderColor: Colors.border,
+    flex: INFO_SECTION_FLEX,
+    backgroundColor: '#000000',
+    position: 'relative',
+  },
+  infoTopFade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: -56,
+    height: 56,
+  },
+  infoScroll: { flex: 1 },
+  infoContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: 0,
+    paddingBottom: Spacing.lg,
   },
   artifactName: {
-    fontSize: FontSize.h1,
+    fontSize: 30,
     fontWeight: '700',
     fontFamily: FONT_KAITI,
-    color: Colors.text,
-    marginBottom: Spacing.lg,
+    color: '#e2c79d',
+    textAlign: 'center',
+    lineHeight: 40,
+    marginBottom: Spacing.sm,
   },
-  metaRow: {
+  metaLine: {
+    fontSize: 17,
+    color: '#d7c29b',
+    fontFamily: FONT_KAITI,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  descriptionText: {
+    fontSize: 15,
+    color: '#ddd5c5',
+    lineHeight: 24,
+    fontFamily: FONT_KAITI,
+    marginBottom: Spacing.md,
+  },
+
+  exhibitionCard: {
+    marginTop: Spacing.xs,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
-  },
-  metaLabel: {
-    width: 60,
-    fontSize: FontSize.body,
-    color: Colors.textSecondary,
-    fontFamily: FONT_KAITI,
-  },
-  metaValue: {
-    flex: 1,
-    fontSize: 15,
-    color: Colors.text,
-    fontFamily: FONT_TIMES,
-  },
-  linkText: { color: Colors.info, textDecorationLine: 'underline' },
-
-  textBlock: { marginTop: Spacing.lg },
-  blockLabel: {
-    fontSize: FontSize.body,
-    color: Colors.textSecondary,
-    fontFamily: FONT_KAITI,
-    marginBottom: 6,
-  },
-  blockText: { fontSize: 15, color: Colors.text, lineHeight: 24 },
-
-  tagsSection: { marginTop: Spacing.lg },
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginTop: Spacing.xs },
-  tagChip: {
-    backgroundColor: Colors.bg,
+    backgroundColor: '#111111',
+    borderWidth: 1,
+    borderColor: 'rgba(226,199,157,0.45)',
     borderRadius: Radius.lg,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderWidth: 0.5,
-    borderColor: Colors.border,
+    paddingVertical: Spacing.sm,
   },
-  tagText: { fontSize: FontSize.caption, color: Colors.text },
+  exhibitionTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  exhibitionLabel: {
+    fontSize: 12,
+    color: '#9f9077',
+    fontFamily: FONT_KAITI,
+    marginBottom: 2,
+  },
+  exhibitionName: {
+    fontSize: 19,
+    color: '#e2c79d',
+    fontFamily: FONT_KAITI,
+  },
+  exhibitionMuseum: {
+    marginTop: 1,
+    fontSize: 13,
+    color: '#b8aa92',
+    fontFamily: FONT_KAITI,
+  },
+  exhibitionArrowWrap: {
+    width: 12,
+    marginLeft: Spacing.sm,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  exhibitionChevronIcon: {
+    width: 8,
+    height: 8,
+    borderLeftWidth: 1.5,
+    borderBottomWidth: 1.5,
+    borderColor: '#d7c29b',
+    transform: [{ rotate: '225deg' }],
+  },
 });

@@ -73,9 +73,13 @@ export default function ExhibitionsScreen() {
               {item.museum}
             </Text>
             <View style={styles.cardBottomRow}>
-              <Text style={styles.cardCount}>共 {item.artifactCount} 件文物</Text>
-              <Text style={styles.cardDate}>{item.visit_date}</Text>
+              <Text style={styles.cardCount} numberOfLines={1}>共 {item.artifactCount} 件文物</Text>
+              <Text style={styles.cardDate} numberOfLines={1}>{item.visit_date}</Text>
             </View>
+          </View>
+
+          <View style={styles.cardArrowWrap}>
+            <View style={styles.cardChevronIcon} />
           </View>
         </View>
       </TouchableOpacity>
@@ -140,12 +144,17 @@ const styles = StyleSheet.create({
 
   listContent: { paddingHorizontal: Spacing.lg, paddingBottom: 100 },
   card: {
-    backgroundColor: '#e8d9b655',
+    backgroundColor: '#eee4ca',
     borderRadius: Radius.lg,
-    padding: Spacing.lg,
-    marginTop: Spacing.md,
-    borderWidth: 0.5,
+    padding: 12,
+    marginTop: Spacing.sm,
+    // borderWidth: 0.5,
     borderColor: Colors.border,
+    shadowColor: '#000000b2',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    // elevation: 2,
   },
   cardBody: {
     flexDirection: 'row',
@@ -163,12 +172,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   thumbPlaceholderText: {
-    fontSize: 24,
+    fontSize: 30,
     opacity: 0.65,
   },
   cardContent: {
     flex: 1,
     minWidth: 0,
+    marginRight: Spacing.sm,
   },
   cardTop: {
     marginBottom: 3,
@@ -187,7 +197,7 @@ const styles = StyleSheet.create({
   cardMuseum: {
     fontSize: FontSize.body,
     color: Colors.text,
-    opacity: 0.7,
+    opacity: 1,
     marginBottom: Spacing.xs,
     fontFamily: FONT_KAITI,
   },
@@ -200,7 +210,22 @@ const styles = StyleSheet.create({
     fontSize: FontSize.caption,
     color: Colors.textSecondary,
     textAlign: 'right',
-        fontFamily: FONT_KAITI,
+    fontFamily: FONT_KAITI,
+    flexShrink: 0,
+  },
+  cardArrowWrap: {
+    width: 12,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  cardChevronIcon: {
+    width: 8,
+    height: 8,
+    borderLeftWidth: 1.5,
+    borderBottomWidth: 1.5,
+    borderColor: Colors.textSecondary,
+    opacity: 0.85,
+    transform: [{ rotate: '225deg' }],
   },
 
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },

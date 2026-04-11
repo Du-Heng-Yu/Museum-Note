@@ -41,24 +41,23 @@ const SCROLL_PAD_R = 14;
 const CARD_H_PAD = 12;
 const CARD_V_PAD = 8;
 const GRID_GAP = 5;
+const GRID_PAGE_SIDE_GAP = 4;
+const GRID_PAGE_SHADOW_PAD_BOTTOM = 6;
 const GRID_COLUMNS = 3;
 const ITEMS_PER_PAGE = GRID_COLUMNS * 3;
 const ROW_SPACING = 8;
 
 const CARD_AREA_W = SCREEN_WIDTH - YEAR_COL_W - LINE_COL_W - SCROLL_PAD_R;
 const GRID_CONTENT_W = CARD_AREA_W - CARD_H_PAD * 2;
+const GRID_PAGE_INNER_W = GRID_CONTENT_W - GRID_PAGE_SIDE_GAP * 2;
 const ARTIFACT_CARD_WIDTH =
-  Math.floor((GRID_CONTENT_W - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS);
+  Math.floor((GRID_PAGE_INNER_W - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS);
 
 // ── 时间轴线 ──
 const DOT_SIZE = 8;
 const DOT_SIZE_ACTIVE = 10;
 const DOT_TOP = 22;
 const LINE_W = 1.5;
-
-// ── 展开态配色 ──
-const EXPANDED_BG = '#2f4858';
-const EXPANDED_TEXT = '#f3ce7d';
 
 // ══════════════════════════════════════════
 // 年份格式化
@@ -121,7 +120,11 @@ function ExpandedArtifactCard({
             <Text style={styles.expandedPlaceholderIcon}>🏛</Text>
           </View>
         )}
-        <Text style={styles.expandedName} numberOfLines={2}>
+        <Text
+          style={styles.expandedName}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
           {artifact.name}
         </Text>
       </View>
@@ -287,14 +290,10 @@ export default function TimelineScreen() {
           const isExpanded = expandedDynastyId === dynasty.id;
           const isFirst = index === 0;
           const isLast = index === sortedDynasties.length - 1;
-          const bgColor = isExpanded
-            ? EXPANDED_BG
-            : getDynastyCardColor(dynasty.order);
-          const textColor = isExpanded ? EXPANDED_TEXT : '#1a1a1a';
-          const borderColor = isExpanded
-            ? 'rgba(211,187,134,0.3)'
-            : '#d3c9b4';
-          const countColor = isExpanded ? EXPANDED_TEXT : Colors.textSecondary;
+          const bgColor = getDynastyCardColor(dynasty.order);
+          const textColor = '#1a1a1a';
+          const borderColor = '#d3c9b4';
+          const countColor = Colors.text;
 
           return (
             <View
@@ -390,9 +389,31 @@ export default function TimelineScreen() {
                       <Text
                         style={[styles.artifactCount, { color: countColor }]}
                       >
-                        共 {items.length} 件文物
+                        共 <Text style={styles.artifactCountNumber}>{items.length}</Text> 件文物
                       </Text>
                     </View>
+                  </Pressable>
+
+                  {/* 展开/收起箭头 */}
+                  <Pressable
+                    onPress={() => toggleExpand(dynasty.id)}
+                    hitSlop={8}
+                    style={({ pressed }) => [
+                      styles.chevronPressable,
+                      pressed && { opacity: 0.5 },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.chevronIcon,
+                        {
+                          borderColor: Colors.textSecondary,
+                          transform: [
+                            { rotate: isExpanded ? '135deg' : '-45deg' },
+                          ],
+                        },
+                      ]}
+                    />
                   </Pressable>
 
                   {/* 展开态：分页文物网格 */}
@@ -409,35 +430,13 @@ export default function TimelineScreen() {
 
                   {isExpanded && items.length === 0 && (
                     <Text
-                      style={[styles.noArtifacts, { color: EXPANDED_TEXT }]}
+                      style={[styles.noArtifacts, { color: Colors.textSecondary }]}
                     >
                       暂无文物记录
                     </Text>
                   )}
 
-                  {/* 展开/收起箭头 */}
-                  <Pressable
-                    onPress={() => toggleExpand(dynasty.id)}
-                    hitSlop={8}
-                    style={({ pressed }) => [
-                      styles.chevronPressable,
-                      pressed && { opacity: 0.5 },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.chevronIcon,
-                        {
-                          borderColor: isExpanded
-                            ? EXPANDED_TEXT
-                            : Colors.textSecondary,
-                          transform: [
-                            { rotate: isExpanded ? '135deg' : '-45deg' },
-                          ],
-                        },
-                      ]}
-                    />
-                  </Pressable>
+
                 </View>
               </View>
             </View>
@@ -445,7 +444,7 @@ export default function TimelineScreen() {
         })}
 
         <Text style={styles.timelineSourceNote}>
-          *时间轴划分参考来源：中国国家博物馆《中国古代历史年表》
+          *时间轴划分来源：中国国家博物馆《中国古代历史年表》
         </Text>
 
         <View style={styles.bottomSpacer} />
@@ -533,7 +532,7 @@ const styles = StyleSheet.create({
     borderRadius: DOT_SIZE_ACTIVE / 2,
     left: LINE_COL_W / 2 - DOT_SIZE_ACTIVE / 2,
     top: DOT_TOP - (DOT_SIZE_ACTIVE - DOT_SIZE) / 2,
-    backgroundColor: EXPANDED_TEXT,
+    backgroundColor: Colors.accent,
   },
 
   // ── 卡片列 ──
@@ -547,17 +546,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: CARD_H_PAD,
     paddingTop: CARD_V_PAD,
     paddingBottom: 4,
-    borderWidth: 0.5,
+    // borderWidth: 0.5,
     borderColor: Colors.border,
+    shadowColor: '#000000b2',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 2,
   },
   innerBorder: {
     position: 'absolute',
-    top: 1,
-    left: 1,
-    right: 1,
-    bottom: 1,
-    borderWidth: 0.5,
-    borderColor: '#d3bb86',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    // borderWidth: 1,
+    // borderColor: '#bfbfbfb8',
     borderRadius: 11,
   },
   cardHeader: {
@@ -576,13 +580,18 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   dynastyYears: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: FONT_TIMES,
   },
   artifactCount: {
-    fontSize: FontSize.caption,
+    fontSize: 14,
     color: Colors.textSecondary,
     fontFamily: FONT_KAITI,
+  },
+  artifactCountNumber: {
+    fontSize: 17,
+    fontStyle: 'italic',
+    fontWeight: '700',
   },
 
   // ── 展开/收起箭头 ──
@@ -599,19 +608,22 @@ const styles = StyleSheet.create({
 
   // ── 分页网格 ──
   pagedGridContainer: {
-    marginTop: 8,
+    marginTop: 6,
+    marginBottom: 12,
     alignItems: 'center',
   },
   gridPage: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    paddingHorizontal: GRID_PAGE_SIDE_GAP,
+    paddingBottom: GRID_PAGE_SHADOW_PAD_BOTTOM,
     gap: GRID_GAP,
   },
   dotsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 14,
     gap: 6,
   },
   pageDot: {
@@ -624,25 +636,26 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: EXPANDED_TEXT,
+    backgroundColor: Colors.accent,
   },
 
   // ── 展开态文物卡片 ──
   expandedCard: {
     width: ARTIFACT_CARD_WIDTH,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1.5 },
-    shadowOpacity: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 3,
   },
   expandedCardInner: {
     width: '100%',
-    backgroundColor: '#ede9d9',
+    backgroundColor: '#f1e9d4',
+    opacity: 0.95,
     borderRadius: 10,
-    borderWidth: 0.5,
-    borderColor: '#d9d6c6',
+    // borderWidth: 0.5,
+    // borderColor: '#211e0e',
     padding: 3,
     alignItems: 'center',
     overflow: 'hidden',
@@ -653,8 +666,8 @@ const styles = StyleSheet.create({
     left: 1,
     right: 1,
     bottom: 1,
-    borderWidth: 0.5,
-    borderColor: '#d9d2bc',
+    // borderWidth: 0.5,
+    // borderColor: '#d9d2bc00',
     borderRadius: 9,
     zIndex: 1,
   },
@@ -672,8 +685,9 @@ const styles = StyleSheet.create({
   },
   expandedName: {
     fontSize: 11,
-    fontWeight: 'bold',
-    color: '#333',
+    // fontWeight: 'bold',
+    color: '#000000',
+    width: '100%',
     marginTop: 3,
     textAlign: 'center',
     lineHeight: 14,
@@ -682,7 +696,8 @@ const styles = StyleSheet.create({
 
   noArtifacts: {
     fontSize: 13,
-    marginTop: 12,
+    marginTop: 10,
+    marginBottom: 16,
     textAlign: 'center',
     fontFamily: FONT_KAITI,
   },
@@ -721,7 +736,6 @@ const styles = StyleSheet.create({
     fontFamily: FONT_KAITI,
     color: Colors.text,
     letterSpacing: 3,
-    marginBottom: 14,
   },
   emptyHint: {
     fontSize: FontSize.body,
