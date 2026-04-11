@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useLayoutEffect, useMemo } from 'react';
+import React, { useState, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,16 @@ import {
   Alert,
   StyleSheet,
   Dimensions,
+  Modal,
 } from 'react-native';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import ReAnimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  runOnJS,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -22,7 +31,268 @@ import { Radius, Spacing, FontSize } from '../constants/theme';
 type Props = NativeStackScreenProps<RootStackParamList, 'ArtifactDetail'>;
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 const PHOTO_SECTION_FLEX = 2;
+
+// ── 照片全屏预览组件（分页滑动 + 双指缩放 + 单击关闭）──
+function PhotoPreviewContent({
+  photoUris,
+  initialIndex,
+  onClose,
+}: {
+  photoUris: string[];
+  initialIndex: number;
+  onClose: () => void;
+}) {
+  const total = photoUris.length;
+  const indexRef = useRef(initialIndex);
+  const totalRef = useRef(total);
+  totalRef.current = total;
+
+  const pageX = useSharedValue(-initialIndex * SCREEN_WIDTH);
+  const savedPageX = useSharedValue(-initialIndex * SCREEN_WIDTH);
+  const [displayIndex, setDisplayIndex] = useState(initialIndex);
+
+  const scale = useSharedValue(1);
+  const savedScale = useSharedValue(1);
+  const imgTransX = useSharedValue(0);
+  const imgTransY = useSharedValue(0);
+  const savedImgTransX = useSharedValue(0);
+  const savedImgTransY = useSharedValue(0);
+  const focalOffsetX = useSharedValue(0);
+  const focalOffsetY = useSharedValue(0);
+
+  function resetZoom() {
+    'worklet';
+    scale.value = 1;
+    savedScale.value = 1;
+    imgTransX.value = 0;
+    imgTransY.value = 0;
+    savedImgTransX.value = 0;
+    savedImgTransY.value = 0;
+    focalOffsetX.value = 0;
+    focalOffsetY.value = 0;
+  }
+
+  function snapToIndex(idx: number) {
+    'worklet';
+    indexRef.current = idx;
+    pageX.value = withTiming(-idx * SCREEN_WIDTH, { duration: 250 });
+    savedPageX.value = -idx * SCREEN_WIDTH;
+    resetZoom();
+    runOnJS(setDisplayIndex)(idx);
+  }
+
+  const stripStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: pageX.value }],
+  }));
+
+  const zoomStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: imgTransX.value + focalOffsetX.value },
+      { translateY: imgTransY.value + focalOffsetY.value },
+      { scale: scale.value },
+    ],
+  }));
+
+  const pinchGesture = Gesture.Pinch()
+    .onStart(() => {
+      savedScale.value = scale.value;
+      savedImgTransX.value = imgTransX.value;
+      savedImgTransY.value = imgTransY.value;
+    })
+    .onUpdate((e) => {
+      const newScale = Math.max(0.5, Math.min(6, savedScale.value * e.scale));
+      scale.value = newScale;
+      const pageCenterX = indexRef.current * SCREEN_WIDTH + SCREEN_WIDTH / 2;
+      const centerY = SCREEN_HEIGHT / 2;
+      const dx = e.focalX - pageCenterX;
+      const dy = e.focalY - centerY;
+      const scaleDiff = newScale / savedScale.value;
+      focalOffsetX.value = dx * (1 - scaleDiff);
+      focalOffsetY.value = dy * (1 - scaleDiff);
+    })
+    .onEnd(() => {
+      savedImgTransX.value = imgTransX.value + focalOffsetX.value;
+      savedImgTransY.value = imgTransY.value + focalOffsetY.value;
+      imgTransX.value = savedImgTransX.value;
+      imgTransY.value = savedImgTransY.value;
+      focalOffsetX.value = 0;
+      focalOffsetY.value = 0;
+      savedScale.value = scale.value;
+      if (scale.value < 1) {
+        scale.value = withSpring(1);
+        savedScale.value = 1;
+        imgTransX.value = withSpring(0);
+        imgTransY.value = withSpring(0);
+        savedImgTransX.value = 0;
+        savedImgTransY.value = 0;
+      }
+    });
+
+  const panGesture = Gesture.Pan()
+    .minPointers(1)
+    .maxPointers(1)
+    .onStart(() => {
+      savedPageX.value = pageX.value;
+      savedImgTransX.value = imgTransX.value;
+      savedImgTransY.value = imgTransY.value;
+    })
+    .onUpdate((e) => {
+      if (scale.value > 1.05) {
+        imgTransX.value = savedImgTransX.value + e.translationX;
+        imgTransY.value = savedImgTransY.value + e.translationY;
+      } else {
+        let raw = savedPageX.value + e.translationX;
+        const minX = -(totalRef.current - 1) * SCREEN_WIDTH;
+        if (raw > 0) {
+          raw = raw * 0.3;
+        } else if (raw < minX) {
+          raw = minX + (raw - minX) * 0.3;
+        }
+        pageX.value = raw;
+      }
+    })
+    .onEnd((e) => {
+      if (scale.value > 1.05) {
+        savedImgTransX.value = imgTransX.value;
+        savedImgTransY.value = imgTransY.value;
+      } else {
+        const idx = indexRef.current;
+        const dragDistance = pageX.value - (-idx * SCREEN_WIDTH);
+        const absVelocity = Math.abs(e.velocityX);
+        let threshold = SCREEN_WIDTH * 0.4;
+        if (absVelocity > 1000) {
+          threshold = SCREEN_WIDTH * 0.2;
+        } else if (absVelocity > 500) {
+          threshold = SCREEN_WIDTH * 0.3;
+        }
+        const shouldGoNext = dragDistance < -threshold && idx + 1 < totalRef.current;
+        const shouldGoPrev = dragDistance > threshold && idx - 1 >= 0;
+        if (shouldGoNext) {
+          snapToIndex(idx + 1);
+        } else if (shouldGoPrev) {
+          snapToIndex(idx - 1);
+        } else {
+          const springConfig =
+            absVelocity > 800
+              ? { damping: 10, mass: 1, stiffness: 100 }
+              : { damping: 13, mass: 1, stiffness: 100 };
+          pageX.value = withSpring(-idx * SCREEN_WIDTH, springConfig);
+          savedPageX.value = -idx * SCREEN_WIDTH;
+        }
+      }
+    });
+
+  const tapGesture = Gesture.Tap().onEnd(() => {
+    if (scale.value <= 1.05) {
+      runOnJS(onClose)();
+    }
+  });
+
+  const doubleTapGesture = Gesture.Tap()
+    .numberOfTaps(2)
+    .onEnd((e) => {
+      if (scale.value > 1.05) {
+        scale.value = withTiming(1, { duration: 250 });
+        savedScale.value = 1;
+        imgTransX.value = withTiming(0, { duration: 250 });
+        imgTransY.value = withTiming(0, { duration: 250 });
+        savedImgTransX.value = 0;
+        savedImgTransY.value = 0;
+        focalOffsetX.value = 0;
+        focalOffsetY.value = 0;
+      } else {
+        const newScale = 2.5;
+        const pageCenterX = indexRef.current * SCREEN_WIDTH + SCREEN_WIDTH / 2;
+        const centerY = SCREEN_HEIGHT / 2;
+        const dx = e.x - pageCenterX;
+        const dy = e.y - centerY;
+        const offsetX = dx * (1 - newScale);
+        const offsetY = dy * (1 - newScale);
+        scale.value = withTiming(newScale, { duration: 250 });
+        savedScale.value = newScale;
+        imgTransX.value = withTiming(offsetX, { duration: 250 });
+        imgTransY.value = withTiming(offsetY, { duration: 250 });
+        savedImgTransX.value = offsetX;
+        savedImgTransY.value = offsetY;
+        focalOffsetX.value = 0;
+        focalOffsetY.value = 0;
+      }
+    });
+
+  const composed = Gesture.Race(
+    pinchGesture,
+    panGesture,
+    Gesture.Exclusive(doubleTapGesture, tapGesture),
+  );
+
+  return (
+    <View style={previewStyles.overlay}>
+      <GestureDetector gesture={composed}>
+        <ReAnimated.View style={[previewStyles.strip, { width: total * SCREEN_WIDTH }, stripStyle]}>
+          {photoUris.map((uri, i) => (
+            <ReAnimated.View
+              key={`preview-${i}`}
+              style={[
+                previewStyles.page,
+                i === displayIndex ? zoomStyle : undefined,
+              ]}
+            >
+              <Image
+                source={{ uri }}
+                style={previewStyles.image}
+                resizeMode="contain"
+              />
+            </ReAnimated.View>
+          ))}
+        </ReAnimated.View>
+      </GestureDetector>
+      {total > 1 && (
+        <View style={previewStyles.indicator} pointerEvents="none">
+          <Text style={previewStyles.indicatorText}>
+            {displayIndex + 1} / {total}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const previewStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    overflow: 'hidden',
+  },
+  strip: {
+    flexDirection: 'row',
+    height: SCREEN_HEIGHT,
+  },
+  page: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  image: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+  },
+  indicator: {
+    position: 'absolute',
+    bottom: 48,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 99,
+  },
+  indicatorText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+});
 const INFO_SECTION_FLEX = 1;
 const DEFAULT_PHOTO_HEIGHT = SCREEN_WIDTH * 0.78;
 
@@ -38,6 +308,8 @@ export default function ArtifactDetailScreen({ route, navigation }: Props) {
   const [photoSizes, setPhotoSizes] = useState<Record<number, { width: number; height: number }>>({});
   const [infoViewportHeight, setInfoViewportHeight] = useState(0);
   const [isInfoScrollable, setIsInfoScrollable] = useState(false);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewIndex, setPreviewIndex] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -143,40 +415,48 @@ export default function ArtifactDetailScreen({ route, navigation }: Props) {
             showsVerticalScrollIndicator={false}
           >
             {photos.map((uri, i) => (
-              <Image
+              <TouchableOpacity
                 key={`${uri}-${i}`}
-                source={{ uri }}
-                style={[
-                  styles.photo,
-                  {
-                    width: photoSizes[i]
-                      ? Math.min(SCREEN_WIDTH, photoSizes[i].width)
-                      : SCREEN_WIDTH,
-                    height: photoSizes[i]
-                      ? photoSizes[i].height *
-                        (Math.min(SCREEN_WIDTH, photoSizes[i].width) /
-                          photoSizes[i].width)
-                      : DEFAULT_PHOTO_HEIGHT,
-                  },
-                ]}
-                resizeMode="contain"
-                onLoad={(event) => {
-                  const { width, height } = event.nativeEvent.source;
-                  if (width > 0 && height > 0) {
-                    setPhotoSizes((prev) => {
-                      const existing = prev[i];
-                      if (
-                        existing &&
-                        existing.width === width &&
-                        existing.height === height
-                      ) {
-                        return prev;
-                      }
-                      return { ...prev, [i]: { width, height } };
-                    });
-                  }
+                activeOpacity={1}
+                onPress={() => {
+                  setPreviewIndex(i);
+                  setPreviewVisible(true);
                 }}
-              />
+              >
+                <Image
+                  source={{ uri }}
+                  style={[
+                    styles.photo,
+                    {
+                      width: photoSizes[i]
+                        ? Math.min(SCREEN_WIDTH, photoSizes[i].width)
+                        : SCREEN_WIDTH,
+                      height: photoSizes[i]
+                        ? photoSizes[i].height *
+                          (Math.min(SCREEN_WIDTH, photoSizes[i].width) /
+                            photoSizes[i].width)
+                        : DEFAULT_PHOTO_HEIGHT,
+                    },
+                  ]}
+                  resizeMode="contain"
+                  onLoad={(event) => {
+                    const { width, height } = event.nativeEvent.source;
+                    if (width > 0 && height > 0) {
+                      setPhotoSizes((prev) => {
+                        const existing = prev[i];
+                        if (
+                          existing &&
+                          existing.width === width &&
+                          existing.height === height
+                        ) {
+                          return prev;
+                        }
+                        return { ...prev, [i]: { width, height } };
+                      });
+                    }
+                  }}
+                />
+              </TouchableOpacity>
             ))}
           </ScrollView>
         ) : (
@@ -185,6 +465,20 @@ export default function ArtifactDetailScreen({ route, navigation }: Props) {
           </View>
         )}
       </View>
+
+      <Modal
+        visible={previewVisible}
+        transparent
+        statusBarTranslucent
+        animationType="fade"
+        onRequestClose={() => setPreviewVisible(false)}
+      >
+        <PhotoPreviewContent
+          photoUris={photos}
+          initialIndex={previewIndex}
+          onClose={() => setPreviewVisible(false)}
+        />
+      </Modal>
 
       <View style={styles.infoSection}>
         <LinearGradient
