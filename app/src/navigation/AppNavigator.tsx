@@ -92,7 +92,7 @@ function FABWithSheet() {
       } else if (action === 'text') {
         navigation.navigate('ArtifactEdit', {});
       }
-    }, 350);
+    }, 150);
 
     return () => clearTimeout(timer);
   }, [visible, pendingAction, navigation]);

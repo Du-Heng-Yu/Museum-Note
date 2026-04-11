@@ -13,7 +13,6 @@ import type { RootStackParamList, Exhibition } from '../types';
 import { getAllExhibitions, getArtifactsByExhibitionId } from '../db';
 import { FONT_KAITI } from '../constants/fonts';
 import { Colors, Radius, Spacing, FontSize } from '../constants/theme';
-import { parseJsonArray } from '../utils';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -32,15 +31,11 @@ export default function ExhibitionsScreen() {
       setExhibitions(
         list.map((ex) => {
           const artifacts = getArtifactsByExhibitionId(ex.id);
-          const firstArtifact = artifacts[0];
-          const firstPhoto = firstArtifact
-            ? parseJsonArray(firstArtifact.photos)[0] ?? null
-            : null;
 
           return {
             ...ex,
             artifactCount: artifacts.length,
-            coverPhotoUri: firstPhoto,
+            coverPhotoUri: ex.cover_photo,
           };
         }),
       );
@@ -144,16 +139,16 @@ const styles = StyleSheet.create({
 
   listContent: { paddingHorizontal: Spacing.lg, paddingBottom: 100 },
   card: {
-    backgroundColor: '#eee4ca',
+    backgroundColor: '#f6edd6',
     borderRadius: Radius.lg,
     padding: 12,
     marginTop: Spacing.sm,
     // borderWidth: 0.5,
     borderColor: Colors.border,
-    shadowColor: '#000000b2',
+    shadowColor: '#000000',
     shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
     // elevation: 2,
   },
   cardBody: {

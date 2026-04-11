@@ -9,6 +9,7 @@ export interface Exhibition {
   museum: string;
   visit_date: string;
   description: string | null;
+  cover_photo: string | null;
   created_at: string;
 }
 

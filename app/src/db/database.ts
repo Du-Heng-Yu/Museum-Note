@@ -44,5 +44,12 @@ export function initDatabase(): void {
     );
   `);
 
+  // 迁移：为 exhibitions 表添加 cover_photo 列
+  try {
+    database.execSync(`ALTER TABLE exhibitions ADD COLUMN cover_photo TEXT`);
+  } catch {
+    // 列已存在，忽略
+  }
+
   console.log('[DB] 数据库初始化完成：exhibitions、artifacts 表已就绪');
 }

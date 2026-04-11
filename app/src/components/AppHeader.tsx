@@ -13,14 +13,14 @@ export default function AppHeader() {
       </View>
 
       {/* 右侧按钮 */}
-      <View style={styles.actions}>
+      {/* <View style={styles.actions}>
         <TouchableOpacity style={styles.iconBtn} activeOpacity={0.6}>
           <Text style={styles.iconText}>🔍</Text>
         </TouchableOpacity>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>👤</Text>
         </View>
-      </View>
+      </View> */}
     </View>
   );
 }
@@ -48,6 +48,7 @@ const styles = StyleSheet.create({
   titleSub: {
     fontSize: 13,
     fontWeight: '500',
+    fontStyle: 'italic',
     fontFamily: FONT_TIMES,
     color: Colors.textSecondary,
     letterSpacing: 0.5,

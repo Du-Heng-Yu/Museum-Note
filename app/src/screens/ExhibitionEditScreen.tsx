@@ -129,10 +129,11 @@ export default function ExhibitionEditScreen({ route, navigation }: Props) {
     >
       <Text style={styles.label}>展览名称 *</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, styles.nameInput]}
         value={name}
         onChangeText={setName}
         placeholder="例如：青铜时代特展"
+        placeholderTextColor={Colors.textSecondary}
         autoFocus={!isEdit}
       />
 
@@ -142,6 +143,7 @@ export default function ExhibitionEditScreen({ route, navigation }: Props) {
         value={museum}
         onChangeText={setMuseum}
         placeholder="例如：国家博物馆"
+        placeholderTextColor={Colors.textSecondary}
       />
 
       <Text style={styles.label}>参观日期 *</Text>
@@ -149,7 +151,7 @@ export default function ExhibitionEditScreen({ route, navigation }: Props) {
         style={[styles.input, styles.pickerBtn]}
         onPress={() => setShowDatePicker(true)}
       >
-        <Text style={styles.pickerText}>{visitDate}</Text>
+        <Text style={visitDate ? styles.pickerText : styles.pickerPlaceholder}>{visitDate}</Text>
       </TouchableOpacity>
       {showDatePicker && (
         <DateTimePicker
@@ -178,6 +180,7 @@ export default function ExhibitionEditScreen({ route, navigation }: Props) {
         value={description}
         onChangeText={setDescription}
         placeholder="选填"
+        placeholderTextColor={Colors.textSecondary}
         multiline
         numberOfLines={4}
         textAlignVertical="top"
@@ -194,21 +197,40 @@ export default function ExhibitionEditScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
-  content: { padding: Spacing.lg },
-  label: { fontSize: FontSize.body, fontWeight: '600', color: Colors.text, marginTop: Spacing.lg, marginBottom: 6 },
-  input: {
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    fontSize: 15,
-    backgroundColor: Colors.inputBg,
+  container: { flex: 1, backgroundColor: '#f3f1e5' },
+  content: { paddingHorizontal: Spacing.lg, paddingTop: 10, paddingBottom: 34 },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2b2319',
+    marginTop: 20,
+    marginBottom: 8,
   },
+  input: {
+    borderWidth: 0,
+    borderBottomWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 0,
+    paddingHorizontal: 0,
+    paddingTop: 6,
+    paddingBottom: 10,
+    fontSize: 15,
+    color: Colors.text,
+    backgroundColor: 'transparent',
+  },
+  nameInput: { fontSize: 16, paddingBottom: 12 },
   pickerBtn: { justifyContent: 'center' },
   pickerText: { fontSize: 15, color: Colors.text },
-  multiline: { minHeight: 100 },
+  pickerPlaceholder: { fontSize: 15, color: Colors.textSecondary },
+  multiline: {
+    minHeight: 210,
+    borderBottomWidth: 0,
+    borderRadius: 14,
+    backgroundColor: '#eee7d7',
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    fontSize: 15,
+  },
   deleteBtn: {
     marginTop: 40,
     marginBottom: 20,

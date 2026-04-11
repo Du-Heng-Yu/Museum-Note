@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -339,6 +339,10 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
   }
 
   const selectedExhibition = exhibitions.find((e) => e.id === exhibitionId);
+  const dynastyOptions = useMemo(
+    () => [...DYNASTIES].sort((a, b) => b.order - a.order),
+    [],
+  );
   const canSave =
     name.trim() !== '' &&
     yearText !== '' &&
@@ -360,7 +364,12 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
       contentContainerStyle={styles.content}
     >
       {/* 照片 */}
-      <ScrollView horizontal style={styles.photoRow} showsHorizontalScrollIndicator={false}>
+      <ScrollView
+        horizontal
+        style={styles.photoRow}
+        contentContainerStyle={styles.photoRowContent}
+        showsHorizontalScrollIndicator={false}
+      >
         {photoUris.map((uri, i) => (
           <TouchableOpacity key={`${uri}-${i}`} activeOpacity={0.8} onPress={() => setPreviewUri(uri)}>
             <RNAnimated.View style={[styles.photoThumb, { width: photoSize, height: photoSize }]}>
@@ -391,14 +400,14 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
       <Text style={styles.label}>文物名称 *</Text>
       <TextInput
         ref={nameInputRef}
-        style={styles.input}
+        style={[styles.input, styles.nameInput]}
         value={name}
         onChangeText={setName}
         placeholder="例如：后母戊鼎"
       />
 
-      {/* 文物笔记 */}
-      <Text style={styles.label}>文物笔记</Text>
+      {/* 文物介绍 */}
+      <Text style={styles.label}>文物介绍</Text>
       <TextInput
         style={[styles.input, styles.multiline]}
         value={description}
@@ -409,13 +418,11 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
         textAlignVertical="top"
       />
 
-      <View style={styles.divider} />
-
       {/* 年份 & 朝代 并排 */}
       <Text style={styles.label}>文物年代 *</Text>
       <View style={styles.yearDynastyRow}>
         <View style={styles.yearDynastyCol}>
-          <Text style={styles.label}>年份（-表示公元前）</Text>
+          <Text style={styles.subLabel}>年份 (-表示公元前)</Text>
           <TextInput
             style={[
               styles.input,
@@ -430,7 +437,7 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
           {yearError ? <Text style={styles.errorText}>{yearError}</Text> : null}
         </View>
         <View style={styles.yearDynastyCol}>
-          <Text style={styles.label}>中国史时期</Text>
+          <Text style={styles.subLabel}>中国史时期</Text>
           <TouchableOpacity
             style={[styles.input, styles.pickerBtn]}
             onPress={() => {
@@ -526,7 +533,7 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
                 <Text style={styles.modalTitle}>选择朝代</Text>
                 <Text style={styles.modalHint}>将自动填入所选朝代的起始年份</Text>
                 <FlatList
-                  data={DYNASTIES}
+                  data={dynastyOptions}
                   keyExtractor={(item) => String(item.id)}
                   renderItem={({ item }) => (
                     <TouchableOpacity
@@ -565,24 +572,48 @@ export default function ArtifactEditScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
-  content: { padding: Spacing.lg },
-  label: { fontSize: FontSize.body, fontWeight: '600', color: Colors.text, marginTop: Spacing.lg, marginBottom: 6 },
-  input: {
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    fontSize: 15,
-    backgroundColor: Colors.inputBg,
+  container: { flex: 1, backgroundColor: '#f3f1e5' },
+  content: { paddingHorizontal: Spacing.lg, paddingTop: 10, paddingBottom: 34 },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2b2319',
+    marginTop: 20,
+    marginBottom: 8,
   },
+  subLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#2b2319',
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 0,
+    borderBottomWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 0,
+    paddingHorizontal: 0,
+    paddingTop: 6,
+    paddingBottom: 10,
+    fontSize: 15,
+    color: Colors.text,
+    backgroundColor: 'transparent',
+  },
+  nameInput: { fontSize: 16, paddingBottom: 12 },
   inputDisabled: { backgroundColor: Colors.card, color: Colors.textSecondary },
-  inputError: { borderColor: Colors.danger },
-  multiline: { minHeight: 160 },
+  inputError: { borderBottomColor: Colors.danger },
+  multiline: {
+    minHeight: 210,
+    borderBottomWidth: 0,
+    borderRadius: 14,
+    backgroundColor: '#eee7d7',
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    fontSize: 15,
+  },
   errorText: { color: Colors.danger, fontSize: FontSize.caption, marginTop: Spacing.xs },
 
-  yearDynastyRow: { flexDirection: 'row', gap: 10, marginTop: 0 },
+  yearDynastyRow: { flexDirection: 'row', gap: 16, marginTop: 2 },
   yearDynastyCol: { flex: 1 },
   modeRow: { flexDirection: 'row', gap: 10 },
   modeBtn: {
@@ -606,27 +637,30 @@ const styles = StyleSheet.create({
   altLabel: { fontSize: FontSize.caption + 1, color: Colors.textSecondary },
   altItem: { fontSize: FontSize.caption + 1, color: Colors.info, marginLeft: 6, textDecorationLine: 'underline' },
 
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.border, marginTop: Spacing.xl },
-
-  photoRow: { marginTop: Spacing.xs },
-  photoThumb: { marginRight: Spacing.sm, borderRadius: Radius.sm, overflow: 'hidden' },
+  photoRow: { marginTop: 8, marginBottom: 8 },
+  photoRowContent: { alignItems: 'center', paddingRight: 2 },
+  photoThumb: {
+    marginRight: 10,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: Colors.card,
+  },
   photoRemove: {
     position: 'absolute',
-    top: 2,
-    right: 2,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    top: 6,
+    right: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  photoRemoveText: { color: Colors.white, fontSize: FontSize.body, lineHeight: 16 },
+  photoRemoveText: { color: Colors.white, fontSize: 18, lineHeight: 20 },
   photoAdd: {
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderStyle: 'dashed',
+    borderRadius: 14,
+    borderWidth: 0,
+    backgroundColor: '#eee7d7',
     overflow: 'hidden',
   },
   photoAddInner: {
@@ -634,8 +668,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  photoAddText: { fontSize: 28, color: Colors.border },
-  cameraIcon: { fontSize: 22, opacity: 0.4 },
+  photoAddText: { fontSize: 34, color: '#baad92', marginTop: -2 },
+  cameraIcon: { fontSize: 27, opacity: 0.45 },
   fullscreenOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.92)',

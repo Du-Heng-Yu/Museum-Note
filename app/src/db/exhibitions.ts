@@ -11,7 +11,7 @@ import { getArtifactsByExhibitionId, deleteArtifact } from './artifacts';
  * created_at 由内部生成，返回含 id 的完整记录
  */
 export function createExhibition(
-  data: Omit<Exhibition, 'id' | 'created_at'>,
+  data: Omit<Exhibition, 'id' | 'created_at' | 'cover_photo'>,
 ): Exhibition {
   const db = getDatabase();
   const createdAt = new Date().toISOString();
@@ -29,6 +29,7 @@ export function createExhibition(
   return {
     id: result.lastInsertRowId,
     ...data,
+    cover_photo: null,
     created_at: createdAt,
   };
 }
@@ -66,7 +67,7 @@ export function updateExhibition(
   const values: (string | number | null)[] = [];
 
   const fields: (keyof typeof data)[] = [
-    'name', 'museum', 'visit_date', 'description',
+    'name', 'museum', 'visit_date', 'description', 'cover_photo',
   ];
 
   for (const key of fields) {

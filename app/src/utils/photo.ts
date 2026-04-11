@@ -20,6 +20,7 @@ export async function ensurePhotosDirectory(): Promise<void> {
 /**
  * 将临时路径的照片逐一复制到 documentDirectory/photos/
  * 命名: artifact_{artifactId}_{index}.jpg
+ * 若同名文件已存在，则自动寻找下一个可用序号，避免编辑态追加照片时冲突
  * 返回复制后的私有路径数组
  */
 export async function copyPhotosToPrivateDir(
@@ -29,9 +30,20 @@ export async function copyPhotosToPrivateDir(
   await ensurePhotosDirectory();
   const privatePaths: string[] = [];
 
+  let nextIndex = 0;
+
   for (let i = 0; i < tempPaths.length; i++) {
-    const fileName = `artifact_${artifactId}_${i}.jpg`;
-    const destFile = new File(PHOTOS_DIR, fileName);
+    let destFile: File;
+
+    while (true) {
+      const fileName = `artifact_${artifactId}_${nextIndex}.jpg`;
+      destFile = new File(PHOTOS_DIR, fileName);
+      nextIndex += 1;
+      if (!destFile.exists) {
+        break;
+      }
+    }
+
     const srcFile = new File(tempPaths[i]);
     srcFile.copy(destFile);
     privatePaths.push(destFile.uri);
@@ -55,6 +67,25 @@ export async function deletePhotoFiles(photoPaths: string[]): Promise<void> {
       console.warn('[Photo] 删除文件失败:', path, e);
     }
   }
+}
+
+/**
+ * 将选择的照片复制为展览封面
+ * 命名: exhibition_{exhibitionId}_cover.jpg
+ */
+export async function copyExhibitionCover(
+  tempPath: string,
+  exhibitionId: number,
+): Promise<string> {
+  await ensurePhotosDirectory();
+  const fileName = `exhibition_${exhibitionId}_cover.jpg`;
+  const destFile = new File(PHOTOS_DIR, fileName);
+  const srcFile = new File(tempPath);
+  if (destFile.exists) {
+    destFile.delete();
+  }
+  srcFile.copy(destFile);
+  return destFile.uri;
 }
 
 /**
