@@ -738,8 +738,8 @@ const styles = StyleSheet.create({
   altLabel: { fontSize: FontSize.caption + 1, color: Colors.textSecondary },
   altItem: { fontSize: FontSize.caption + 1, color: Colors.info, marginLeft: 6, textDecorationLine: 'underline' },
 
-  photoRow: { marginTop: 8, marginBottom: 8 },
-  photoRowContent: { alignItems: 'center', paddingRight: 2 },
+  photoRow: { marginTop: 4, marginBottom: 4 },
+  photoRowContent: { alignItems: 'center', paddingRight: 2, paddingVertical: 8 },
   photoThumb: {
     marginRight: 10,
     borderRadius: 14,
