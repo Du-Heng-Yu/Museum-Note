@@ -11,8 +11,7 @@ import {
   Text,
   Modal,
   Animated,
-  Dimensions,
-  Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -29,12 +28,19 @@ import CameraScreen from '../screens/CameraScreen';
 import ExhibitionDetailScreen from '../screens/ExhibitionDetailScreen';
 import ExhibitionEditScreen from '../screens/ExhibitionEditScreen';
 import DevTestScreen from '../screens/DevTestScreen';
+
+// Android: SVG 组件图标
 import TimelineActiveIcon from '../../assets/svg/timeLine_active.svg';
 import TimelineInactiveIcon from '../../assets/svg/timeLine_inactive.svg';
 import ExhibitionActiveIcon from '../../assets/svg/exhibition_active.svg';
 import ExhibitionInactiveIcon from '../../assets/svg/exhibition_inactive.svg';
 
+// iOS: 原生标签导航器 (UITabBarController → Liquid Glass on iOS 26+)
+import { createNativeBottomTabNavigatorCompat } from './NativeTabNavigatorCompat';
+
+// 根据平台选择标签导航器
 const Tab = createBottomTabNavigator<BottomTabParamList>();
+const NativeTab = createNativeBottomTabNavigatorCompat();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const SHEET_HEIGHT = 260;
@@ -162,49 +168,97 @@ function FABWithSheet() {
   );
 }
 
-/** 底部 Tab 导航 */
+/** 底部 Tab 导航 —— Android 使用 JS 标签栏 */
+function AndroidTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: styles.tabBar,
+        tabBarActiveTintColor: Colors.accent,
+        tabBarInactiveTintColor: Colors.textSecondary,
+        tabBarLabelStyle: styles.tabBarLabel,
+      }}
+    >
+      <Tab.Screen
+        name="Timeline"
+        component={TimelineScreen}
+        options={{
+          tabBarLabel: '时间轴',
+          tabBarIcon: ({ focused }) =>
+            focused ? (
+              <TimelineActiveIcon width={28} height={28} />
+            ) : (
+              <TimelineInactiveIcon width={28} height={28} />
+            ),
+        }}
+      />
+      <Tab.Screen
+        name="Exhibitions"
+        component={ExhibitionsScreen}
+        options={{
+          tabBarLabel: '我的展览',
+          tabBarIcon: ({ focused }) =>
+            focused ? (
+              <ExhibitionActiveIcon width={22} height={22} />
+            ) : (
+              <ExhibitionInactiveIcon width={22} height={22} />
+            ),
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+/**
+ * 底部 Tab 导航 —— iOS 使用原生 UITabBarController
+ * iOS 26+ 自动获得 Liquid Glass 效果，旧 iOS 显示标准原生标签栏。
+ * 图标使用 SF Symbols（原生图标，完美适配 Liquid Glass 风格）。
+ */
+function IOSNativeTabs() {
+  return (
+    <NativeTab.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <NativeTab.Screen
+        name="Timeline"
+        component={TimelineScreen}
+        options={{
+          tabBarLabel: '时间轴',
+          tabBarIcon: ({ focused }: { focused: boolean }) => ({
+            type: 'sfSymbol' as const,
+            name: focused ? 'calendar.circle.fill' : 'calendar.circle',
+          }),
+        }}
+      />
+      <NativeTab.Screen
+        name="Exhibitions"
+        component={ExhibitionsScreen}
+        options={{
+          tabBarLabel: '我的展览',
+          tabBarIcon: ({ focused }: { focused: boolean }) => ({
+            type: 'sfSymbol' as const,
+            name: focused ? 'building.columns.fill' : 'building.columns',
+          }),
+        }}
+      />
+    </NativeTab.Navigator>
+  );
+}
+
+/** 底部 Tab 导航 —— 自动选择平台实现 */
 function BottomTabs() {
   return (
     <View style={{ flex: 1, backgroundColor: Colors.bg }}>
-      <SafeAreaView edges={['top']} style={{ backgroundColor: Colors.bg }}>
-        <AppHeader />
-      </SafeAreaView>
-      <Tab.Navigator
-        screenOptions={{
-          headerShown: false,
-          tabBarStyle: styles.tabBar,
-          tabBarActiveTintColor: Colors.accent,
-          tabBarInactiveTintColor: Colors.textSecondary,
-          tabBarLabelStyle: styles.tabBarLabel,
-        }}
-      >
-        <Tab.Screen
-          name="Timeline"
-          component={TimelineScreen}
-          options={{
-            tabBarLabel: '时间轴',
-            tabBarIcon: ({ focused }) =>
-              focused ? (
-                <TimelineActiveIcon width={28} height={28} />
-              ) : (
-                <TimelineInactiveIcon width={28} height={28} />
-              ),
-          }}
-        />
-        <Tab.Screen
-          name="Exhibitions"
-          component={ExhibitionsScreen}
-          options={{
-            tabBarLabel: '我的展览',
-            tabBarIcon: ({ focused }) =>
-              focused ? (
-                <ExhibitionActiveIcon width={22} height={22} />
-              ) : (
-                <ExhibitionInactiveIcon width={22} height={22} />
-              ),
-          }}
-        />
-      </Tab.Navigator>
+      {/* iOS 原生标签自带 SafeArea 处理，不需要额外的 SafeAreaView */}
+      {Platform.OS !== 'ios' && (
+        <SafeAreaView edges={['top']} style={{ backgroundColor: Colors.bg }}>
+          <AppHeader />
+        </SafeAreaView>
+      )}
+      {Platform.OS === 'ios' ? <IOSNativeTabs /> : <AndroidTabs />}
       <FABWithSheet />
     </View>
   );
