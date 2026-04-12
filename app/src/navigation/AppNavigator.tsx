@@ -29,10 +29,6 @@ import CameraScreen from '../screens/CameraScreen';
 import ExhibitionDetailScreen from '../screens/ExhibitionDetailScreen';
 import ExhibitionEditScreen from '../screens/ExhibitionEditScreen';
 import DevTestScreen from '../screens/DevTestScreen';
-import TimelineActiveIcon from '../../assets/svg/timeLine_active.svg';
-import TimelineInactiveIcon from '../../assets/svg/timeLine_inactive.svg';
-import ExhibitionActiveIcon from '../../assets/svg/exhibition_active.svg';
-import ExhibitionInactiveIcon from '../../assets/svg/exhibition_inactive.svg';
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -183,12 +179,9 @@ function BottomTabs() {
           component={TimelineScreen}
           options={{
             tabBarLabel: '时间轴',
-            tabBarIcon: ({ focused }) =>
-              focused ? (
-                <TimelineActiveIcon width={28} height={28} />
-              ) : (
-                <TimelineInactiveIcon width={28} height={28} />
-              ),
+            tabBarIcon: ({ color }) => (
+              <Text style={{ fontSize: 20, color }}>📅</Text>
+            ),
           }}
         />
         <Tab.Screen
@@ -196,12 +189,9 @@ function BottomTabs() {
           component={ExhibitionsScreen}
           options={{
             tabBarLabel: '我的展览',
-            tabBarIcon: ({ focused }) =>
-              focused ? (
-                <ExhibitionActiveIcon width={22} height={22} />
-              ) : (
-                <ExhibitionInactiveIcon width={22} height={22} />
-              ),
+            tabBarIcon: ({ color }) => (
+              <Text style={{ fontSize: 20, color }}>🏛</Text>
+            ),
           }}
         />
       </Tab.Navigator>
