@@ -54,7 +54,7 @@ export default function ExhibitionsScreen() {
             <Image source={{ uri: item.coverPhotoUri }} style={styles.thumb} />
           ) : (
             <View style={[styles.thumb, styles.thumbPlaceholder]}>
-              <Text style={styles.thumbPlaceholderText}>🏛</Text>
+              <Text style={styles.thumbPlaceholderText}>🏛 </Text>
             </View>
           )}
 
